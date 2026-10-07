@@ -61,22 +61,28 @@ sync.
 ## Access to this private repository and the images
 
 This repository and the image packages are private, so the cluster needs two secrets in the
-`example` namespace. Neither is in Git:
+`example` namespace. Neither is in Git: both are kept in the `example` namespace's share of the
+cluster's Key Vault - the secrets named `example--...`, which this namespace and no other can read -
+and synced into the namespace by the platform (aks-fluxcd-platform, `tenants/example/key-vault.yaml`):
 
-- **`aks-fluxcd-example-git`** - read access to this repository, for Flux. A fine-grained personal
-  access token (or a GitHub App) with read-only `Contents` on `olljanat-ai/aks-fluxcd-example`:
-
-  ```sh
-  kubectl -n example create secret generic aks-fluxcd-example-git \
-    --from-literal=username=git --from-literal=password=github_pat_...
-  ```
-
-- **`ghcr-pull`** - read access to the images, for the nodes. A token with `read:packages`:
+- **`example--aks-fluxcd-example-git`** - read access to this repository, for Flux. A fine-grained
+  personal access token (or a GitHub App) with read-only `Contents` on
+  `olljanat-ai/aks-fluxcd-example`. Synced as `aks-fluxcd-example-git`.
 
   ```sh
-  kubectl -n example create secret docker-registry ghcr-pull \
-    --docker-server=ghcr.io --docker-username=<github user> --docker-password=<token>
+  az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
   ```
 
-  Not needed once the packages are made public (package settings on GitHub); the reference in
-  `apps/aks-hello/deployment.yaml` is harmless without the secret.
+- **`example--ghcr-pull`** - read access to the images, for the nodes: a Docker config JSON for a
+  token with `read:packages`. Synced as `ghcr-pull`.
+
+  ```sh
+  az keyvault secret set --vault-name <key vault> --name example--ghcr-pull --value "$(
+    kubectl create secret docker-registry ghcr-pull --dry-run=client -o jsonpath='{.data.\.dockerconfigjson}' \
+      --docker-server=ghcr.io --docker-username=<github user> --docker-password=<token> |
+    base64 -d)"
+  ```
+
+The team's writers can set these themselves. Any other secret an app needs goes in the vault the
+same way, as `example--<name>`, with an `ExternalSecret` in `apps/` against the namespace's
+`key-vault` SecretStore.
