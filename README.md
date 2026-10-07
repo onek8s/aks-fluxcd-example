@@ -29,7 +29,7 @@ routes to its apps.
 | --- | --- | --- |
 | `example` namespace, its quota, network policy and Pod Security Standard | aks-terraform | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
-| Traefik Hub API Gateway, its Azure internal load balancer, the `internal` Gateway, its hostnames and listeners | aks-fluxcd-platform | Platform |
+| Traefik Proxy, its Azure internal load balancer, the `internal` Gateway, its hostnames and listeners | aks-fluxcd-platform | Platform |
 | TLS: the certificate of each listener, kept in Key Vault | aks-fluxcd-platform | Platform |
 | DNS: the hostname's record in Azure DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
