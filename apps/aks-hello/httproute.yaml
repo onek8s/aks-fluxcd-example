@@ -1,10 +1,11 @@
-# Publishes the app through the platform's shared `internal` Gateway, served by Traefik Proxy
-# behind an Azure internal load balancer. The route names no hostname, so it takes the one of the
-# listener it attaches to; the listener, its hostname and the TLS certificate are the platform's and
-# live in olljanat-ai/aks-fluxcd-platform. Plain HTTP on that Gateway is redirected to HTTPS by the
-# platform as well, so only the HTTPS listeners are attached to here: `https-example`, the team's
-# hostname in the public zone, and `https-example-internal`, its hostname in the private zone, which
-# only resolves inside the network.
+# Publishes the app through the platform's shared Gateways, served by Traefik Proxy: `public`, on
+# the internet, and `internal`, behind an Azure internal load balancer. The route names no hostname,
+# so it takes the one of each listener it attaches to; the listeners, their hostnames and the TLS
+# certificate are the platform's and live in olljanat-ai/aks-fluxcd-platform. Plain HTTP is
+# redirected to HTTPS by the platform as well, so only the HTTPS listeners are attached to here:
+# `public`/`https-example`, the team's hostname in the public zone, and
+# `internal`/`https-example-internal`, its hostname in the private zone, which only resolves inside
+# the network.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -14,7 +15,7 @@ spec:
     - group: gateway.networking.k8s.io
       kind: Gateway
       namespace: ingress-gateway
-      name: internal
+      name: public
       sectionName: https-example
     - group: gateway.networking.k8s.io
       kind: Gateway

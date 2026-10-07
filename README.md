@@ -14,7 +14,7 @@ apps/
   aks-hello/             # olljanat-ai/aks-hello, a .NET hello world website
     deployment.yaml
     service.yaml
-    httproute.yaml       # attaches to the platform's `internal` Gateway
+    httproute.yaml       # attaches to the platform's `public` and `internal` Gateways
     poddisruptionbudget.yaml
 ```
 
@@ -29,7 +29,7 @@ routes to its apps.
 | --- | --- | --- |
 | `example` namespace, its quota, network policy and Pod Security Standard | aks-terraform | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
-| Traefik Proxy, its Azure internal load balancer, the `internal` Gateway, its hostnames and listeners | aks-fluxcd-platform | Platform |
+| Traefik Proxy, its internal and public load balancers, the `internal` and `public` Gateways, their hostnames and listeners | aks-fluxcd-platform | Platform |
 | TLS: the certificate of each listener, kept in Key Vault | aks-fluxcd-platform | Platform |
 | DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
@@ -37,14 +37,13 @@ routes to its apps.
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
 | An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
 
-An `HTTPRoute` names no hostname and no certificate. It attaches to the `https-example` listener of
-the `internal` Gateway in `ingress-gateway`, which the platform restricts to routes from the
-`example` namespace, and takes its hostname from there - and to `https-example-internal` as well, to
-be published under the team's hostname in the private zone too (aks-hello: `hello.onek8s.lol` and
-`hello.internal.onek8s.lol`). The private one serves the public hostname's certificate, so clients
-see a name mismatch there. Changing the hostname or the certificate is
-a change to aks-fluxcd-platform; nothing here moves. The Gateway sits behind an Azure internal load
-balancer, so the apps are reachable from inside the network only.
+An `HTTPRoute` names no hostname and no certificate. It attaches to the listeners the platform
+gives the team - restricted to routes from the `example` namespace - and takes their hostnames:
+`https-example` of the `public` Gateway, on the internet (aks-hello: `hello.onek8s.lol`), and
+`https-example-internal` of the `internal` Gateway, behind an Azure internal load balancer and
+resolving inside the network only (`hello.internal.onek8s.lol`). Both serve the platform's wildcard
+certificate. An app that should not be on the internet attaches to the internal listener only.
+Changing a hostname or the certificate is a change to aks-fluxcd-platform; nothing here moves.
 
 Flux applies `apps/` as the `flux-reconciler` service account of the `example` namespace, which
 holds the `admin` role in that namespace and nothing outside it - so this repository can only ever
