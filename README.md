@@ -31,7 +31,7 @@ routes to its apps.
 | The Gateway API CRDs | aks-terraform | Platform |
 | Traefik Proxy, its Azure internal load balancer, the `internal` Gateway, its hostnames and listeners | aks-fluxcd-platform | Platform |
 | TLS: the certificate of each listener, kept in Key Vault | aks-fluxcd-platform | Platform |
-| DNS: the hostname's record in Azure DNS, kept by external-dns | aks-fluxcd-platform | Platform |
+| DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
 | The Flux `GitRepository` and `Kustomization` that apply `apps/`, what they may do, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
@@ -39,7 +39,10 @@ routes to its apps.
 
 An `HTTPRoute` names no hostname and no certificate. It attaches to the `https-example` listener of
 the `internal` Gateway in `ingress-gateway`, which the platform restricts to routes from the
-`example` namespace, and takes its hostname from there. Changing the hostname or the certificate is
+`example` namespace, and takes its hostname from there - and to `https-example-internal` as well, to
+be published under the team's hostname in the private zone too (aks-hello: `hello.onek8s.lol` and
+`hello.internal.onek8s.lol`). The private one serves the public hostname's certificate, so clients
+see a name mismatch there. Changing the hostname or the certificate is
 a change to aks-fluxcd-platform; nothing here moves. The Gateway sits behind an Azure internal load
 balancer, so the apps are reachable from inside the network only.
 
@@ -49,7 +52,7 @@ change the `example` namespace.
 
 [roles]: https://gateway-api.sigs.k8s.io/concepts/roles-and-personas/
 
-The hostname is set per cluster in aks-fluxcd-platform (`clusters/<cluster>/cluster-settings.yaml`).
+The hostnames are set per cluster in aks-fluxcd-platform (`clusters/<cluster>/cluster-settings.yaml`).
 
 ## Releasing an app
 
