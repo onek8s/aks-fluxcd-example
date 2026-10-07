@@ -1,4 +1,4 @@
-# Publishes the app through the platform's shared `internal` Gateway, served by Traefik Hub API Gateway
+# Publishes the app through the platform's shared `internal` Gateway, served by Traefik Proxy
 # behind an Azure internal load balancer. The route names no hostname, so it takes the one of the
 # listener it attaches to; the listener, its hostname and the TLS certificate are the platform's and
 # live in olljanat-ai/aks-fluxcd-platform. Plain HTTP on that Gateway is redirected to HTTPS by the
