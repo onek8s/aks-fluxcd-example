@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-hello
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  template:
+    spec:
+      # The image is published to GHCR by olljanat-ai/aks-hello. While the package is private,
+      # a `ghcr-pull` docker-registry secret in the namespace is what lets the nodes pull it; once the
+      # package is public the reference is harmless and can go.
+      imagePullSecrets:
+        - name: ghcr-pull
+      automountServiceAccountToken: false
+      # The namespace enforces the restricted Pod Security Standard.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: aks-hello
+      containers:
+        - name: aks-hello
+          # A version olljanat-ai/aks-hello has published - the <Version> of its
+          # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
+          image: ghcr.io/olljanat-ai/aks-hello:0.1.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DOTNET_EnableDiagnostics
+              value: "0"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          # The namespace quota counts requests and limits of both CPU and memory, so a pod that
+          # leaves any of them out is refused.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
