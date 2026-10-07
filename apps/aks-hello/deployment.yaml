@@ -3,7 +3,14 @@ kind: Deployment
 metadata:
   name: aks-hello
 spec:
-  replicas: 2
+  # One replica, replaced rather than surged on an update: the prototype cluster is a single small
+  # node with no room for a spare pod. Raise it, and drop the strategy, where there are nodes to spare.
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
   revisionHistoryLimit: 3
   template:
     spec:
