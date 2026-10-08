@@ -1,10 +1,10 @@
 # aks-fluxcd-example
 
 What Flux deploys into the `example` team namespace of the AKS clusters built by
-[aks-terraform](https://github.com/olljanat-ai/aks-terraform). The platform
-([aks-fluxcd-platform](https://github.com/olljanat-ai/aks-fluxcd-platform), `tenants/example`)
-syncs `apps/` of this repository into `example`; everything else - the apps' source and images -
-lives in the apps' own repositories.
+[aks-terraform](https://github.com/olljanat-ai/aks-terraform). aks-terraform gives the namespace a
+Flux configuration of its own, also named `example` (`managed_namespaces.example.flux`), that syncs
+`apps/` of this repository into it - its status is on the cluster's GitOps page in the Azure portal.
+Everything else - the apps' source and images - lives in the apps' own repositories.
 
 ## Layout
 
@@ -33,7 +33,8 @@ routes to its apps.
 | TLS: the certificate of each listener, kept in Key Vault | aks-fluxcd-platform | Platform |
 | DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
-| The Flux `GitRepository` and `Kustomization` that apply `apps/`, what they may do, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
+| The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.example.flux`) | Platform |
+| The token it reads this repository with, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
 | An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
 
@@ -45,9 +46,10 @@ resolving inside the network only (`hello.internal.onek8s.lol`). Both serve the 
 certificate. An app that should not be on the internet attaches to the internal listener only.
 Changing a hostname or the certificate is a change to aks-fluxcd-platform; nothing here moves.
 
-Flux applies `apps/` as the `flux-reconciler` service account of the `example` namespace, which
-holds the `admin` role in that namespace and nothing outside it - so this repository can only ever
-change the `example` namespace.
+Flux applies `apps/` as the AKS Flux extension's `flux-applier` service account of the `example`
+namespace, and the extension refuses references across namespaces - so this repository can only
+ever change the `example` namespace. `apps/kustomization.yaml` sets `namespace: example` on
+everything, since the configuration has no `targetNamespace` to do it.
 
 [roles]: https://gateway-api.sigs.k8s.io/concepts/roles-and-personas/
 
