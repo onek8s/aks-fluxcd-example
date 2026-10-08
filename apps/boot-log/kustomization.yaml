@@ -1,0 +1,15 @@
+# boot-log: a stateful example on the platform's `portable-disk` StorageClass, for trying out moving
+# a volume from one cluster to another - see README.md, "Moving boot-log to another cluster". Every
+# start of the pod appends a line to a file on the volume, and the file is served on the team's
+# hostnames under /boot-log/, so the lines written in one cluster show up in the next.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/name: boot-log
+resources:
+  - persistentvolumeclaim.yaml
+  - deployment.yaml
+  - service.yaml
+  - httproute.yaml
