@@ -1,5 +1,9 @@
-# Everything the platform's Flux applies to the `example` namespace: one directory per app.
+# Everything the `example` namespace's Flux configuration applies to it: one directory per app.
+#
+# `namespace` puts every object in `example`. The configuration has no `targetNamespace` to do it,
+# and the AKS Flux extension would refuse any other namespace anyway.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: example
 resources:
   - aks-hello
