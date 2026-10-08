@@ -72,16 +72,17 @@ aks-fluxcd-platform's README, "Persistent volumes".
 ### Moving boot-log to another cluster
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
-it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-free,
-`hello-b.onek8s.lol` on aks-prototype-free-b. Both clusters sync this repository, so each starts with
-a disk of its own. To move aks-prototype-free's disk to aks-prototype-free-b:
+it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-a,
+`hello-b.onek8s.lol` on aks-prototype-b (the team's stable name is on aks-prototype-a; see
+aks-fluxcd-platform's README, "Moving a workload to another cluster"). Both clusters sync this
+repository, so each starts with a disk of its own. To move aks-prototype-a's disk to aks-prototype-b:
 
 1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
    not start the pod again, and scale the app down - the disk detaches once the pod is gone. Note
    the disk's resource ID.
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free -t managedClusters -n example --suspend true
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-a -t managedClusters -n example --suspend true
    kubectl -n example scale deployment boot-log --replicas=0
    kubectl get pv "$(kubectl -n example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
      -o jsonpath='{.spec.csi.volumeHandle}'
@@ -93,7 +94,7 @@ a disk of its own. To move aks-prototype-free's disk to aks-prototype-free-b:
    PersistentVolume is cluster-wide, which the team cannot create):
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free-b -t managedClusters -n example --suspend true
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-b -t managedClusters -n example --suspend true
    kubectl -n example scale deployment boot-log --replicas=0
    kubectl -n example delete pvc boot-log
    kubectl apply -f - <<'PV'
@@ -120,11 +121,11 @@ a disk of its own. To move aks-prototype-free's disk to aks-prototype-free-b:
    again, it binds to the reserved volume, and the pod starts on the moved disk:
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free-b -t managedClusters -n example --suspend false
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-b -t managedClusters -n example --suspend false
    curl https://hello-b.onek8s.lol/boot-log/log.txt
    ```
 
-   The lines written on aks-prototype-free's node are there, followed by one from this cluster's.
+   The lines written on aks-prototype-a's node are there, followed by one from this cluster's.
 
 The old cluster stays suspended for as long as the disk is the new one's; resuming it there would
 start the pod on a claim whose disk is attached elsewhere.
