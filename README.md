@@ -6,6 +6,9 @@ Flux configuration of its own, also named `example` (`managed_namespaces.example
 `apps/` of this repository into it - its status is on the cluster's GitOps page in the Azure portal.
 Everything else - the apps' source and images - lives in the apps' own repositories.
 
+aks-prototype-b has no persistent storage at all, so it syncs `stateless/` instead: the apps of
+`apps/` that keep no state - aks-hello, not boot-log.
+
 ## Layout
 
 ```
@@ -21,9 +24,12 @@ apps/
     deployment.yaml
     service.yaml
     httproute.yaml       # /boot-log/ of the same hostnames as aks-hello
+stateless/
+  kustomization.yaml     # the apps that keep no state, for aks-prototype-b: aks-hello only
 ```
 
-Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml`.
+Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml` - and in
+`stateless/kustomization.yaml`, as `../apps/<app>`, if it needs no volume.
 
 ## Who owns what
 
@@ -72,10 +78,12 @@ aks-fluxcd-platform's README, "Persistent volumes".
 ### Moving boot-log to another cluster
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
-it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-a,
-`hello-b.onek8s.lol` on aks-prototype-b (the team's stable name is on aks-prototype-a; see
-aks-fluxcd-platform's README, "Moving a workload to another cluster"). Both clusters sync this
-repository, so each starts with a disk of its own. To move aks-prototype-a's disk to aks-prototype-b:
+it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-a.
+
+aks-prototype-b is stateless - no disk CSI driver, no `portable-disk` StorageClass - and does not run
+boot-log (it syncs `stateless/`), so the steps below need another cluster with portable disks to move
+the disk to. They are kept for that: with a second such cluster in place of aks-prototype-b, they
+move aks-prototype-a's disk to it.
 
 1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
    not start the pod again, and scale the app down - the disk detaches once the pod is gone. Note
