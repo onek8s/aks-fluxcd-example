@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boot-log
+spec:
+  # One pod, and the old one gone before the new one starts: the disk attaches to one node at a time.
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  template:
+    spec:
+      automountServiceAccountToken: false
+      # The namespace enforces the restricted Pod Security Standard. fsGroup makes the disk writable
+      # for the user the container runs as.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: boot-log
+          image: docker.io/library/busybox:1.37.0
+          # Appends `<time> <node> <pod>` to log.txt on every start, then serves the volume. The node
+          # name tells the clusters apart: each has node names of its own.
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              mkdir -p /data/boot-log
+              echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $NODE_NAME $POD_NAME" >> /data/boot-log/log.txt
+              exec httpd -f -v -p 8080 -h /data
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          # The namespace quota counts requests and limits of both CPU and memory, so a pod that
+          # leaves any of them out is refused.
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          readinessProbe:
+            httpGet:
+              path: /boot-log/log.txt
+              port: http
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: boot-log

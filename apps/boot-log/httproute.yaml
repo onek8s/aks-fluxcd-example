@@ -1,0 +1,26 @@
+# /boot-log/ of the team's hostnames, on the same listeners as aks-hello: a longer path prefix wins
+# over aks-hello's `/`, so https://<example hostname>/boot-log/log.txt is this app's file.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: boot-log
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ingress-gateway
+      name: public
+      sectionName: https-example
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ingress-gateway
+      name: internal
+      sectionName: https-example-internal
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /boot-log/
+      backendRefs:
+        - name: boot-log
+          port: 80

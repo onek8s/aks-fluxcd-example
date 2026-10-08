@@ -16,6 +16,11 @@ apps/
     service.yaml
     httproute.yaml       # attaches to the platform's `public` and `internal` Gateways
     poddisruptionbudget.yaml
+  boot-log/              # a stateful example: a log of its own starts, on a portable-disk volume
+    persistentvolumeclaim.yaml
+    deployment.yaml
+    service.yaml
+    httproute.yaml       # /boot-log/ of the same hostnames as aks-hello
 ```
 
 Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml`.
@@ -54,6 +59,75 @@ everything, since the configuration has no `targetNamespace` to do it.
 [roles]: https://gateway-api.sigs.k8s.io/concepts/roles-and-personas/
 
 The hostnames are set per cluster in aks-fluxcd-platform (`clusters/<cluster>/cluster-settings.yaml`).
+
+## Persistent volumes
+
+A volume is a `PersistentVolumeClaim` on the platform's **`portable-disk`** StorageClass - the only
+one the namespace may use. Its disk is created in the platform's shared resource group, not in the
+cluster's node resource group, so it outlives the cluster and can be moved to the next one. A claim
+naming another class, or none (which would take AKS's `default`), is refused by the platform's
+`portable-storage-only` admission policy, as is a pod with an inline `csi` volume. See
+aks-fluxcd-platform's README, "Persistent volumes".
+
+### Moving boot-log to another cluster
+
+`boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
+it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-free,
+`hello-b.onek8s.lol` on aks-prototype-free-b. Both clusters sync this repository, so each starts with
+a disk of its own. To move aks-prototype-free's disk to aks-prototype-free-b:
+
+1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
+   not start the pod again, and scale the app down - the disk detaches once the pod is gone. Note
+   the disk's resource ID.
+
+   ```sh
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free -t managedClusters -n example --suspend true
+   kubectl -n example scale deployment boot-log --replicas=0
+   kubectl get pv "$(kubectl -n example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
+     -o jsonpath='{.spec.csi.volumeHandle}'
+   ```
+
+2. **Hand the disk to the new cluster.** Suspend its configuration too, and remove its own claim -
+   its disk is kept (`Retain`), and is deleted in Azure later if nobody wants it. Then a cluster
+   admin creates a PersistentVolume for the moved disk, reserved for the `boot-log` claim (a
+   PersistentVolume is cluster-wide, which the team cannot create):
+
+   ```sh
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free-b -t managedClusters -n example --suspend true
+   kubectl -n example scale deployment boot-log --replicas=0
+   kubectl -n example delete pvc boot-log
+   kubectl apply -f - <<'PV'
+   apiVersion: v1
+   kind: PersistentVolume
+   metadata:
+     name: example-boot-log
+   spec:
+     capacity:
+       storage: 1Gi
+     accessModes: [ReadWriteOnce]
+     persistentVolumeReclaimPolicy: Retain
+     storageClassName: portable-disk
+     claimRef:
+       namespace: example
+       name: boot-log
+     csi:
+       driver: disk.csi.azure.com
+       volumeHandle: <the disk's resource ID from step 1>
+   PV
+   ```
+
+3. **Start it there.** Resume the new cluster's configuration. Flux creates the `boot-log` claim
+   again, it binds to the reserved volume, and the pod starts on the moved disk:
+
+   ```sh
+   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-free-b -t managedClusters -n example --suspend false
+   curl https://hello-b.onek8s.lol/boot-log/log.txt
+   ```
+
+   The lines written on aks-prototype-free's node are there, followed by one from this cluster's.
+
+The old cluster stays suspended for as long as the disk is the new one's; resuming it there would
+start the pod on a claim whose disk is attached elsewhere.
 
 ## Releasing an app
 

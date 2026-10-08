@@ -1,0 +1,13 @@
+# The disk, in the platform's shared resource group rather than the cluster's node resource group,
+# so that it outlives the cluster. `portable-disk` is the only StorageClass a team namespace may
+# use; a claim naming any other - or none, which would take AKS's `default` - is refused.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: boot-log
+spec:
+  storageClassName: portable-disk
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
