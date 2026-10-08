@@ -4,6 +4,9 @@ What Flux deploys into the `example` team namespace of the AKS clusters built by
 [aks-terraform](https://github.com/olljanat-ai/aks-terraform). aks-terraform gives the namespace a
 Flux configuration of its own, also named `example` (`managed_namespaces.example.flux`), that syncs
 `apps/` of this repository into it - its status is on the cluster's GitOps page in the Azure portal.
+The clusters do not read this repository from GitHub: every push to `main` publishes it as an OCI
+artifact, `oci://acrsecprototypeshared.azurecr.io/manifests/aks-fluxcd-example:main`, in the
+environment's Azure Container Registry (`.github/workflows/publish.yml`), and Flux reads it there.
 Everything else - the apps' source and images - lives in the apps' own repositories.
 
 aks-prototype-b has no persistent storage at all, so it syncs `stateless/` instead: the apps of
@@ -45,7 +48,8 @@ routes to its apps.
 | DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
 | The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.example.flux`) | Platform |
-| The token it reads this repository with, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
+| The registry this repository is published to, and the clusters' identities that read it | aks-terraform (`shared/`, `container_registry_name`) | Platform |
+| The `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
 | An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
 
@@ -141,35 +145,21 @@ start the pod on a claim whose disk is attached elsewhere.
 ## Releasing an app
 
 An app's repository publishes its image; this repository decides which version runs. For
-aks-hello: once a version is published to `ghcr.io/olljanat-ai/aks-hello` (see its README), change
+aks-hello: once a version is published to `acrsecprototypeshared.azurecr.io/aks-hello` (see its README), change
 the image tag in `apps/aks-hello/deployment.yaml` to it and merge. Flux rolls it out on its next
 sync.
 
 ## Access to this private repository and the images
 
-This repository and the image packages are private, so the cluster needs two secrets in the
-`example` namespace. Neither is in Git: both are kept in the `example` namespace's share of the
-cluster's Key Vault - the secrets named `example--...`, which this namespace and no other can read -
-and synced into the namespace by the platform (aks-fluxcd-platform, `tenants/example/key-vault.yaml`):
+The clusters need no credentials for either. This repository reaches them as an OCI artifact in the
+environment's Azure Container Registry, and the images are there too; each cluster reads both as
+identities of its own with `AcrPull` - its Flux source-controller's for the manifests, its kubelet's
+for the images (aks-terraform). Nothing is kept in Git, in the Key Vault or in the cluster to do it
+with, and nothing can expire.
 
-- **`example--aks-fluxcd-example-git`** - read access to this repository, for Flux. A fine-grained
-  personal access token (or a GitHub App) with read-only `Contents` on
-  `olljanat-ai/aks-fluxcd-example`. Synced as `aks-fluxcd-example-git`.
+Publishing needs the environment's deployment service principal, which has `AcrPush` on the
+registry: the repository (or organization) variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` and the
+secret `AZURE_CLIENT_SECRET`, read by `.github/workflows/publish.yml`.
 
-  ```sh
-  az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
-  ```
-
-- **`example--ghcr-pull`** - read access to the images, for the nodes: a Docker config JSON for a
-  token with `read:packages`. Synced as `ghcr-pull`.
-
-  ```sh
-  az keyvault secret set --vault-name <key vault> --name example--ghcr-pull --value "$(
-    kubectl create secret docker-registry ghcr-pull --dry-run=client -o jsonpath='{.data.\.dockerconfigjson}' \
-      --docker-server=ghcr.io --docker-username=<github user> --docker-password=<token> |
-    base64 -d)"
-  ```
-
-The team's writers can set these themselves. Any other secret an app needs goes in the vault the
-same way, as `example--<name>`, with an `ExternalSecret` in `apps/` against the namespace's
-`key-vault` SecretStore.
+Any other secret an app needs goes in the namespace's share of the Key Vault, as `example--<name>`,
+with an `ExternalSecret` in `apps/` against the namespace's `key-vault` SecretStore.

@@ -1,0 +1,64 @@
+name: Publish
+
+# Publishes the repository as an OCI artifact in the environment's Azure Container Registry, which the
+# `example` namespace's Flux configuration of every cluster reads - as the cluster's own identity, so
+# the clusters keep no token for this repository. Every push to main replaces the `main` tag; each
+# version is also kept under its commit SHA.
+#
+# Credentials: the environment's deployment service principal, which has AcrPush on the registry
+# (aks-terraform, shared/) - the repository (or organization) variables AZURE_CLIENT_ID and
+# AZURE_TENANT_ID and the secret AZURE_CLIENT_SECRET.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publication at a time, the latest last.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  ARTIFACT: oci://acrsecprototypeshared.azurecr.io/manifests/aks-fluxcd-example
+
+jobs:
+  publish:
+    name: Push the manifests to ACR
+    runs-on: ubuntu-latest
+    env:
+      # Read by `flux push --provider=azure`.
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    steps:
+      - name: Check required configuration
+        run: |
+          missing=""
+          [ -n "$AZURE_CLIENT_ID" ] || missing="$missing AZURE_CLIENT_ID (variable)"
+          [ -n "$AZURE_TENANT_ID" ] || missing="$missing AZURE_TENANT_ID (variable)"
+          [ -n "$AZURE_CLIENT_SECRET" ] || missing="$missing AZURE_CLIENT_SECRET (secret)"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing:$missing. See the header of .github/workflows/publish.yml." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: fluxcd/flux2/action@main
+        with:
+          version: 2.7.2
+
+      - name: Push
+        run: |
+          set -euo pipefail
+          sha="${GITHUB_SHA}"
+          flux push artifact "${ARTIFACT}:${sha::12}" \
+            --provider=azure \
+            --path=. \
+            --ignore-paths=".github/,README.md" \
+            --source="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --revision="${GITHUB_REF_NAME}@sha1:${sha}"
+          flux tag artifact "${ARTIFACT}:${sha::12}" --provider=azure --tag=main
