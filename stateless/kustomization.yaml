@@ -1,0 +1,10 @@
+# The apps of apps/ that keep no state, for a cluster without persistent storage: aks-hello, and not
+# boot-log, whose volume such a cluster cannot provide. aks-prototype-b syncs this directory instead
+# of apps/ (aks-terraform, envs/prototype-b.tfvars: managed_namespaces.example.flux.path).
+#
+# An app added to apps/ that needs no volume is added here too.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: example
+resources:
+  - ../apps/aks-hello
