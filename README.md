@@ -4,9 +4,6 @@ What Flux deploys into the `example` team namespace of the AKS clusters built by
 [aks-terraform](https://github.com/olljanat-ai/aks-terraform). aks-terraform gives the namespace a
 Flux configuration of its own, also named `example` (`managed_namespaces.example.flux`), that syncs
 `apps/` of this repository into it - its status is on the cluster's GitOps page in the Azure portal.
-The clusters do not read this repository from GitHub: every push to `main` publishes it as an OCI
-artifact, `oci://acrsecprototypeshared.azurecr.io/manifests/aks-fluxcd-example:main`, in the
-environment's Azure Container Registry (`.github/workflows/publish.yml`), and Flux reads it there.
 Everything else - the apps' source and images - lives in the apps' own repositories.
 
 aks-prototype-b has no persistent storage at all, so it syncs `stateless/` instead: the apps of
@@ -48,8 +45,8 @@ routes to its apps.
 | DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
 | The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.example.flux`) | Platform |
-| The registry this repository is published to, and the clusters' identities that read it | aks-terraform (`shared/`, `container_registry_name`) | Platform |
-| The `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
+| The token it reads this repository with, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
+| The container registry the images are pulled from, as the cluster's kubelet identity | aks-terraform (`shared/`, `container_registry_name`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
 | An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
 
@@ -151,15 +148,19 @@ sync.
 
 ## Access to this private repository and the images
 
-The clusters need no credentials for either. This repository reaches them as an OCI artifact in the
-environment's Azure Container Registry, and the images are there too; each cluster reads both as
-identities of its own with `AcrPull` - its Flux source-controller's for the manifests, its kubelet's
-for the images (aks-terraform). Nothing is kept in Git, in the Key Vault or in the cluster to do it
-with, and nothing can expire.
+This repository is private, so Flux reads it with a token: **`example--aks-fluxcd-example-git`** in
+the `example` namespace's share of the cluster's Key Vault - a fine-grained personal access token (or
+a GitHub App) with read-only `Contents` on `olljanat-ai/aks-fluxcd-example`, synced into the
+namespace as `aks-fluxcd-example-git` by the platform (aks-fluxcd-platform,
+`tenants/example/key-vault.yaml`). The `example--` prefix is required: the namespace's identity reads
+only the secrets under it.
 
-Publishing needs the environment's deployment service principal, which has `AcrPush` on the
-registry: the repository (or organization) variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` and the
-secret `AZURE_CLIENT_SECRET`, read by `.github/workflows/publish.yml`.
+```sh
+az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
+```
 
-Any other secret an app needs goes in the namespace's share of the Key Vault, as `example--<name>`,
-with an `ExternalSecret` in `apps/` against the namespace's `key-vault` SecretStore.
+The images need no secret: they are in the environment's Azure Container Registry, and each cluster
+pulls them as its kubelet identity, which has `AcrPull` there (aks-terraform).
+
+Any other secret an app needs goes in the vault the same way, as `example--<name>`, with an
+`ExternalSecret` in `apps/` against the namespace's `key-vault` SecretStore.
