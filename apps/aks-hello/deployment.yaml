@@ -14,11 +14,8 @@ spec:
   revisionHistoryLimit: 3
   template:
     spec:
-      # The image is published to GHCR by olljanat-ai/aks-hello. While the package is private,
-      # a `ghcr-pull` docker-registry secret in the namespace is what lets the nodes pull it; once the
-      # package is public the reference is harmless and can go.
-      imagePullSecrets:
-        - name: ghcr-pull
+      # The image is published to the environment's Azure Container Registry by olljanat-ai/aks-hello.
+      # The nodes pull it as the cluster's kubelet identity, which has AcrPull there - no pull secret.
       automountServiceAccountToken: false
       # The namespace enforces the restricted Pod Security Standard.
       securityContext:
@@ -38,7 +35,7 @@ spec:
         - name: aks-hello
           # A version olljanat-ai/aks-hello has published - the <Version> of its
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: ghcr.io/olljanat-ai/aks-hello:0.1.0
+          image: acrsecprototypeshared.azurecr.io/aks-hello:0.1.0
           ports:
             - name: http
               containerPort: 8080

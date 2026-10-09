@@ -46,6 +46,7 @@ routes to its apps.
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
 | The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.example.flux`) | Platform |
 | The token it reads this repository with, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
+| The container registry the images are pulled from, as the cluster's kubelet identity | aks-terraform (`shared/`, `container_registry_name`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
 | An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
 
@@ -141,35 +142,25 @@ start the pod on a claim whose disk is attached elsewhere.
 ## Releasing an app
 
 An app's repository publishes its image; this repository decides which version runs. For
-aks-hello: once a version is published to `ghcr.io/olljanat-ai/aks-hello` (see its README), change
+aks-hello: once a version is published to `acrsecprototypeshared.azurecr.io/aks-hello` (see its README), change
 the image tag in `apps/aks-hello/deployment.yaml` to it and merge. Flux rolls it out on its next
 sync.
 
 ## Access to this private repository and the images
 
-This repository and the image packages are private, so the cluster needs two secrets in the
-`example` namespace. Neither is in Git: both are kept in the `example` namespace's share of the
-cluster's Key Vault - the secrets named `example--...`, which this namespace and no other can read -
-and synced into the namespace by the platform (aks-fluxcd-platform, `tenants/example/key-vault.yaml`):
+This repository is private, so Flux reads it with a token: **`example--aks-fluxcd-example-git`** in
+the `example` namespace's share of the cluster's Key Vault - a fine-grained personal access token (or
+a GitHub App) with read-only `Contents` on `olljanat-ai/aks-fluxcd-example`, synced into the
+namespace as `aks-fluxcd-example-git` by the platform (aks-fluxcd-platform,
+`tenants/example/key-vault.yaml`). The `example--` prefix is required: the namespace's identity reads
+only the secrets under it.
 
-- **`example--aks-fluxcd-example-git`** - read access to this repository, for Flux. A fine-grained
-  personal access token (or a GitHub App) with read-only `Contents` on
-  `olljanat-ai/aks-fluxcd-example`. Synced as `aks-fluxcd-example-git`.
+```sh
+az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
+```
 
-  ```sh
-  az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
-  ```
+The images need no secret: they are in the environment's Azure Container Registry, and each cluster
+pulls them as its kubelet identity, which has `AcrPull` there (aks-terraform).
 
-- **`example--ghcr-pull`** - read access to the images, for the nodes: a Docker config JSON for a
-  token with `read:packages`. Synced as `ghcr-pull`.
-
-  ```sh
-  az keyvault secret set --vault-name <key vault> --name example--ghcr-pull --value "$(
-    kubectl create secret docker-registry ghcr-pull --dry-run=client -o jsonpath='{.data.\.dockerconfigjson}' \
-      --docker-server=ghcr.io --docker-username=<github user> --docker-password=<token> |
-    base64 -d)"
-  ```
-
-The team's writers can set these themselves. Any other secret an app needs goes in the vault the
-same way, as `example--<name>`, with an `ExternalSecret` in `apps/` against the namespace's
-`key-vault` SecretStore.
+Any other secret an app needs goes in the vault the same way, as `example--<name>`, with an
+`ExternalSecret` in `apps/` against the namespace's `key-vault` SecretStore.
