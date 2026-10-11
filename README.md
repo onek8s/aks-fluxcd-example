@@ -20,7 +20,7 @@ apps/
   aks-hello/             # onek8s/aks-hello, a .NET hello world website
     deployment.yaml
     service.yaml
-    httproute.yaml       # attaches to the platform's `public` and `internal` Gateways
+    httproute.yaml       # attaches to the platform's Gateway
     poddisruptionbudget.yaml
   boot-log/              # a stateful example: a log of its own starts, on a portable-disk volume
     persistentvolumeclaim.yaml
@@ -43,7 +43,7 @@ routes to its apps.
 | --- | --- | --- |
 | `example` namespace, its quota, network policy and Pod Security Standard | aks-terraform | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
-| Traefik Proxy, its internal and public load balancers, the `internal` and `public` Gateways, their hostnames and listeners | aks-fluxcd-platform | Platform |
+| Traefik Proxy, its load balancer, the Gateway, its hostnames and listeners | aks-fluxcd-platform | Platform |
 | TLS: the certificate of each listener, kept in Key Vault | aks-fluxcd-platform | Platform |
 | DNS: the hostnames' records in Azure DNS and Azure Private DNS, kept by external-dns | aks-fluxcd-platform | Platform |
 | HTTP to HTTPS redirect | aks-fluxcd-platform | Platform |
@@ -55,12 +55,11 @@ routes to its apps.
 
 An `HTTPRoute` names no hostname and no certificate. It attaches to the listeners the platform
 gives the team - restricted to routes from the `example` namespace - and takes their hostnames:
-`https-example` of the `public` Gateway, on the internet (aks-hello: `hello-<cluster>.onek8s.lol`),
-`https-example-global` of the same Gateway, the name every stateless cluster serves at once
-(`hello.onek8s.lol`, behind aks-terraform's Traffic Manager - the page says which cluster answered),
-and `https-example-internal` of the `internal` Gateway, behind an Azure internal load balancer and
-resolving inside the network only (`hello-<cluster>.internal.onek8s.lol`). Both serve the platform's wildcard
-certificate. An app that should not be on the internet attaches to the internal listener only.
+`https-example` of the `public` Gateway (aks-hello: `hello-<cluster>.onek8s.lol`), and
+`https-example-global`, the name every stateless cluster serves at once (`hello.onek8s.lol`, behind
+aks-terraform's Traffic Manager - the page says which cluster answered). Both serve the platform's
+wildcard certificate. The cluster has one DNS zone, public or private: with a public zone - as in
+`dev` - the apps are on the internet, with a private one only inside the network.
 Changing a hostname or the certificate is a change to aks-fluxcd-platform; nothing here moves.
 
 Flux applies `apps/` as the AKS Flux extension's `flux-applier` service account of the `example`

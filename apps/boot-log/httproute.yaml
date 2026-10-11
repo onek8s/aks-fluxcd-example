@@ -11,11 +11,6 @@ spec:
       namespace: ingress-gateway
       name: public
       sectionName: https-example
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      namespace: ingress-gateway
-      name: internal
-      sectionName: https-example-internal
   rules:
     - matches:
         - path:
