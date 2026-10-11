@@ -1,20 +1,23 @@
 # aks-fluxcd-example
 
-What Flux deploys into the `example` team namespace of the AKS clusters built by
-[aks-terraform](https://github.com/olljanat-ai/aks-terraform). aks-terraform gives the namespace a
+An application team's repository in [OneK8s](https://onek8s.github.io/) - one Kubernetes platform for
+every cloud: what Flux deploys into the `example` team namespace of the clusters built by
+[aks-terraform](https://github.com/onek8s/aks-terraform). Nothing here names a cloud: plain
+Kubernetes and Gateway API manifests, which move to another cloud's clusters unchanged. aks-terraform gives the namespace a
 Flux configuration of its own, also named `example` (`managed_namespaces.example.flux`), that syncs
 `apps/` of this repository into it - its status is on the cluster's GitOps page in the Azure portal.
 Everything else - the apps' source and images - lives in the apps' own repositories.
 
-aks-prototype-b has no persistent storage at all, so it syncs `stateless/` instead: the apps of
-`apps/` that keep no state - aks-hello, not boot-log.
+The stateless clusters, aks-dev-stateless-az1 and aks-dev-stateless-az2, have no persistent storage
+at all, so they sync `stateless/` instead: the apps of `apps/` that keep no state - aks-hello, not
+boot-log.
 
 ## Layout
 
 ```
 apps/
   kustomization.yaml     # the apps in the namespace, one directory each
-  aks-hello/             # olljanat-ai/aks-hello, a .NET hello world website
+  aks-hello/             # onek8s/aks-hello, a .NET hello world website
     deployment.yaml
     service.yaml
     httproute.yaml       # attaches to the platform's `public` and `internal` Gateways
@@ -25,7 +28,7 @@ apps/
     service.yaml
     httproute.yaml       # /boot-log/ of the same hostnames as aks-hello
 stateless/
-  kustomization.yaml     # the apps that keep no state, for aks-prototype-b: aks-hello only
+  kustomization.yaml     # the apps that keep no state, for the stateless clusters: aks-hello only
 ```
 
 Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml` - and in
@@ -48,13 +51,15 @@ routes to its apps.
 | The token it reads this repository with, and the `NetworkPolicy` that lets Traefik reach the pods | aks-fluxcd-platform (`tenants/example`) | Platform |
 | The container registry the images are pulled from, as the cluster's kubelet identity | aks-terraform (`shared/`, `container_registry_name`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` | this repository | Team |
-| An app's source and image | the app's repository, e.g. [olljanat-ai/aks-hello](https://github.com/olljanat-ai/aks-hello) | Team |
+| An app's source and image | the app's repository, e.g. [onek8s/aks-hello](https://github.com/onek8s/aks-hello) | Team |
 
 An `HTTPRoute` names no hostname and no certificate. It attaches to the listeners the platform
 gives the team - restricted to routes from the `example` namespace - and takes their hostnames:
-`https-example` of the `public` Gateway, on the internet (aks-hello: `hello.onek8s.lol`), and
-`https-example-internal` of the `internal` Gateway, behind an Azure internal load balancer and
-resolving inside the network only (`hello.internal.onek8s.lol`). Both serve the platform's wildcard
+`https-example` of the `public` Gateway, on the internet (aks-hello: `hello-<cluster>.onek8s.lol`),
+`https-example-global` of the same Gateway, the name every stateless cluster serves at once
+(`hello.onek8s.lol`, behind aks-terraform's Traffic Manager - the page says which cluster answered),
+and `https-example-internal` of the `internal` Gateway, behind an Azure internal load balancer and
+resolving inside the network only (`hello-<cluster>.internal.onek8s.lol`). Both serve the platform's wildcard
 certificate. An app that should not be on the internet attaches to the internal listener only.
 Changing a hostname or the certificate is a change to aks-fluxcd-platform; nothing here moves.
 
@@ -79,19 +84,20 @@ aks-fluxcd-platform's README, "Persistent volumes".
 ### Moving boot-log to another cluster
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
-it at `https://<example hostname>/boot-log/log.txt` - `hello.onek8s.lol` on aks-prototype-a.
+it at `https://<example hostname>/boot-log/log.txt` - `hello-dev-stateful.onek8s.lol` on
+aks-dev-stateful.
 
-aks-prototype-b is stateless - no disk CSI driver, no `portable-disk` StorageClass - and does not run
-boot-log (it syncs `stateless/`), so the steps below need another cluster with portable disks to move
-the disk to. They are kept for that: with a second such cluster in place of aks-prototype-b, they
-move aks-prototype-a's disk to it.
+The stateless clusters - no disk CSI driver, no `portable-disk` StorageClass - do not run boot-log
+(they sync `stateless/`), so the steps below need another cluster with portable disks to move the
+disk to. They are kept for that: with a second stateful cluster, they move aks-dev-stateful's disk to
+it.
 
 1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
    not start the pod again, and scale the app down - the disk detaches once the pod is gone. Note
    the disk's resource ID.
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-a -t managedClusters -n example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful -t managedClusters -n example --suspend true
    kubectl -n example scale deployment boot-log --replicas=0
    kubectl get pv "$(kubectl -n example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
      -o jsonpath='{.spec.csi.volumeHandle}'
@@ -103,7 +109,7 @@ move aks-prototype-a's disk to it.
    PersistentVolume is cluster-wide, which the team cannot create):
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-b -t managedClusters -n example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful-2 -t managedClusters -n example --suspend true
    kubectl -n example scale deployment boot-log --replicas=0
    kubectl -n example delete pvc boot-log
    kubectl apply -f - <<'PV'
@@ -130,11 +136,11 @@ move aks-prototype-a's disk to it.
    again, it binds to the reserved volume, and the pod starts on the moved disk:
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-prototype -c aks-prototype-b -t managedClusters -n example --suspend false
-   curl https://hello-b.onek8s.lol/boot-log/log.txt
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful-2 -t managedClusters -n example --suspend false
+   curl https://hello-dev-stateful-2.onek8s.lol/boot-log/log.txt
    ```
 
-   The lines written on aks-prototype-a's node are there, followed by one from this cluster's.
+   The lines written on aks-dev-stateful's node are there, followed by one from this cluster's.
 
 The old cluster stays suspended for as long as the disk is the new one's; resuming it there would
 start the pod on a claim whose disk is attached elsewhere.
@@ -142,25 +148,23 @@ start the pod on a claim whose disk is attached elsewhere.
 ## Releasing an app
 
 An app's repository publishes its image; this repository decides which version runs. For
-aks-hello: once a version is published to `acrsecprototypeshared.azurecr.io/aks-hello` (see its README), change
-the image tag in `apps/aks-hello/deployment.yaml` to it and merge. Flux rolls it out on its next
+aks-hello: once the environment's registry has built a version (`acronek8sdev.azurecr.io/aks-hello`,
+see aks-hello's README), change the image tag in `apps/aks-hello/deployment.yaml` to it and merge. Flux rolls it out on its next
 sync.
 
-## Access to this private repository and the images
+## Access to this repository and the images
 
-This repository is private, so Flux reads it with a token: **`example--aks-fluxcd-example-git`** in
-the `example` namespace's share of the cluster's Key Vault - a fine-grained personal access token (or
-a GitHub App) with read-only `Contents` on `olljanat-ai/aks-fluxcd-example`, synced into the
-namespace as `aks-fluxcd-example-git` by the platform (aks-fluxcd-platform,
-`tenants/example/key-vault.yaml`). The `example--` prefix is required: the namespace's identity reads
-only the secrets under it.
-
-```sh
-az keyvault secret set --vault-name <key vault> --name example--aks-fluxcd-example-git --value github_pat_...
-```
+This repository is public, so Flux reads it without a token. A team whose repository is private keeps
+a read-only token in its namespace's share of the Key Vault - `<namespace>--<name>`, synced into the
+namespace by an `ExternalSecret` of the platform's - and names the synced Secret in aks-terraform's
+`managed_namespaces.<team>.flux.secret_name`.
 
 The images need no secret: they are in the environment's Azure Container Registry, and each cluster
 pulls them as its kubelet identity, which has `AcrPull` there (aks-terraform).
 
-Any other secret an app needs goes in the vault the same way, as `example--<name>`, with an
-`ExternalSecret` in `apps/` against the namespace's `key-vault` SecretStore.
+Any secret an app needs goes in the vault as `example--<name>`, with an `ExternalSecret` in `apps/`
+against the namespace's `key-vault` SecretStore - the namespace's identity reads only the secrets
+under that prefix.
+
+The manifests can use the post-build variable `${cluster_name}` - the name of the cluster they are
+applied in, which aks-terraform gives every team's Flux configuration. aks-hello shows it on its page.

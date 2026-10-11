@@ -14,8 +14,9 @@ spec:
   revisionHistoryLimit: 3
   template:
     spec:
-      # The image is published to the environment's Azure Container Registry by olljanat-ai/aks-hello.
-      # The nodes pull it as the cluster's kubelet identity, which has AcrPull there - no pull secret.
+      # The image is built in the environment's Azure Container Registry from onek8s/aks-hello
+      # (onek8s/aks-terraform, container_registry_builds). The nodes pull it as the cluster's kubelet
+      # identity, which has AcrPull there - no pull secret.
       automountServiceAccountToken: false
       # The namespace enforces the restricted Pod Security Standard.
       securityContext:
@@ -33,15 +34,20 @@ spec:
               app.kubernetes.io/name: aks-hello
       containers:
         - name: aks-hello
-          # A version olljanat-ai/aks-hello has published - the <Version> of its
+          # A version the registry has built - the <Version> of onek8s/aks-hello's
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acrsecprototypeshared.azurecr.io/aks-hello:0.1.0
+          image: acronek8sdev.azurecr.io/aks-hello:0.2.0
           ports:
             - name: http
               containerPort: 8080
           env:
             - name: DOTNET_EnableDiagnostics
               value: "0"
+            # The cluster the pod runs in, which the page shows: hello.onek8s.lol is served by every
+            # stateless cluster at once. Filled in by the namespace's Flux configuration, which
+            # aks-terraform gives the cluster's name as the post-build variable `cluster_name`.
+            - name: CLUSTER_NAME
+              value: "${cluster_name}"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

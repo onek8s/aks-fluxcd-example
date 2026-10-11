@@ -1,6 +1,6 @@
-# olljanat-ai/aks-hello, as Flux reconciles it into the `example` namespace - see
+# onek8s/aks-hello, as Flux reconciles it into the `example` namespace - see
 # README.md. The namespace itself, the Gateway this app is published through and its TLS certificate
-# belong to the platform (olljanat-ai/aks-fluxcd-platform); everything here is namespaced and lands
+# belong to the platform (onek8s/aks-fluxcd-platform); everything here is namespaced and lands
 # in `example`.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
