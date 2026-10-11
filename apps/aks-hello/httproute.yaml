@@ -1,7 +1,7 @@
 # Publishes the app through the platform's shared Gateways, served by Traefik Proxy: `public`, on
 # the internet, and `internal`, behind an Azure internal load balancer. The route names no hostname,
 # so it takes the one of each listener it attaches to; the listeners, their hostnames and the TLS
-# certificate are the platform's and live in olljanat-ai/aks-fluxcd-platform. Plain HTTP is
+# certificate are the platform's and live in onek8s/aks-fluxcd-platform. Plain HTTP is
 # redirected to HTTPS by the platform as well, so only the HTTPS listeners are attached to here:
 # `public`/`https-example`, the team's hostname in the public zone, and
 # `internal`/`https-example-internal`, its hostname in the private zone, which only resolves inside
@@ -17,6 +17,13 @@ spec:
       namespace: ingress-gateway
       name: public
       sectionName: https-example
+    # hello.onek8s.lol, which every stateless cluster serves at once behind aks-terraform's Traffic
+    # Manager. A cluster without the listener just leaves this parent unaccepted.
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ingress-gateway
+      name: public
+      sectionName: https-example-global
     - group: gateway.networking.k8s.io
       kind: Gateway
       namespace: ingress-gateway
