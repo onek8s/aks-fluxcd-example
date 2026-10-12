@@ -36,7 +36,7 @@ spec:
         - name: aks-hello
           # A version the registry has built - the <Version> of onek8s/aks-hello's
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acronek8sdev.azurecr.io/aks-hello:0.2.0
+          image: acronek8sdev.azurecr.io/aks-hello:0.2.1
           ports:
             - name: http
               containerPort: 8080
