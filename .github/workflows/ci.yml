@@ -1,0 +1,50 @@
+name: CI
+
+# Builds what Flux applies, and checks the apps' egress policies against the platform's rules and the
+# ext-fi zone's allow-list (OneK8s design section 16; onek8s/aks-fluxcd-platform,
+# scripts/check-egress.py and policy/egress-allow-lists.yaml) - so a name the zone does not allow is
+# found in the pull request, not as a timeout in the cluster.
+#
+# An app without a CiliumNetworkPolicy `egress` reaches nothing outside the cluster: aks-hello needs
+# nothing, and has none. The check says how many policies it found, so that is a decision, not an
+# omission.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: v5.4.3
+      ZONE: ext-fi
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/checkout@v7
+        with:
+          repository: onek8s/aks-fluxcd-platform
+          path: .platform
+
+      - name: Install kustomize
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/kustomize.tgz" \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          tar -xzf "$RUNNER_TEMP/kustomize.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/built"
+          kustomize build apps > "$RUNNER_TEMP/built/apps.yaml"
+          kustomize build stateless > "$RUNNER_TEMP/built/stateless.yaml"
+
+      - name: Egress policies
+        run: |
+          python3 .platform/scripts/check-egress.py --zone "$ZONE" \
+            --allow-lists .platform/policy/egress-allow-lists.yaml "$RUNNER_TEMP/built"

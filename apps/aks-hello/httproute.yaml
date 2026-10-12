@@ -1,10 +1,12 @@
-# Publishes the app through the platform's Gateway, `public`, served by Traefik Proxy - on the
-# internet with the cluster's zone public, inside the network with it private (aks-terraform,
-# dns_zone_private). The route names no hostname, so it takes the one of each listener it attaches
-# to; the listeners, their hostnames and the TLS certificate are the platform's and live in
-# onek8s/aks-fluxcd-platform. Plain HTTP is redirected to HTTPS by the platform as well, so only the
-# HTTPS listeners are attached to here: `https-example`, the team's hostname on this cluster, and
-# `https-example-global`, hello.onek8s.lol.
+# Publishes the app on its zone's Gateway - `ext-fi` in `ext-fi-gateway`, Traefik Proxy for the
+# ext-fi isolation zone, which only the zone's application namespaces may attach to. The Gateway's one
+# listener is HTTPS for *.${zone_domain} with the zone's wildcard certificate, both the platform's
+# (onek8s/aks-fluxcd-platform); the route names its own hostnames below the zone's domain, which
+# aks-terraform gives the namespace's Flux configuration as ${zone_domain}.
+#
+# This route is the app's name in this cell, hello-<cluster>.<zone domain>, which the cell's
+# external-dns publishes as an A record of the cell's ext-fi gateway. It is also what Azure Traffic
+# Manager sends hello.<zone domain> to (aks-global.yaml).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -13,16 +15,37 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      namespace: ingress-gateway
-      name: public
-      sectionName: https-example
-    # hello.onek8s.lol, which every stateless cluster serves at once behind aks-terraform's Traffic
-    # Manager. A cluster without the listener just leaves this parent unaccepted.
+      namespace: ext-fi-gateway
+      name: ext-fi
+  hostnames:
+    - hello-${cluster_name}.${zone_domain}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: aks-hello
+          port: 80
+---
+# hello.<zone domain>, the name every cell serves at once: its record is a CNAME to aks-terraform's
+# Azure Traffic Manager profile, which hands out one cell or another and leaves out a cell whose
+# probe of /healthz fails. The controller annotation tells the cell's external-dns to leave the name
+# alone.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: aks-hello-global
+  annotations:
+    external-dns.kubernetes.io/controller: traffic-manager
+spec:
+  parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      namespace: ingress-gateway
-      name: public
-      sectionName: https-example-global
+      namespace: ext-fi-gateway
+      name: ext-fi
+  hostnames:
+    - hello.${zone_domain}
   rules:
     - matches:
         - path:
