@@ -18,6 +18,20 @@ spec:
       # (onek8s/aks-terraform, container_registry_builds). The nodes pull it as the cluster's kubelet
       # identity, which has AcrPull there - no pull secret.
       automountServiceAccountToken: false
+      # The ext-fi zone's nodes (the platform's NAP NodePools extfi / extfispot), and spot by choice:
+      # the design injects these from the namespace's zone and the pod's `platform/capacity` label
+      # with Azure Policy mutations, which are not in place yet - so they are stated here.
+      nodeSelector:
+        platform/zone: ext-fi
+      tolerations:
+        - key: platform/zone
+          operator: Equal
+          value: ext-fi
+          effect: NoSchedule
+        - key: platform/capacity
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       # The namespace enforces the restricted Pod Security Standard.
       securityContext:
         runAsNonRoot: true
@@ -43,8 +57,8 @@ spec:
           env:
             - name: DOTNET_EnableDiagnostics
               value: "0"
-            # The cluster the pod runs in, which the page shows: hello.onek8s.lol is served by every
-            # stateless cluster at once. Filled in by the namespace's Flux configuration, which
+            # The cluster the pod runs in, which the page shows: hello.ext-fi.dev.onek8s.lol is
+            # served by every stateless cell at once. Filled in by the namespace's Flux configuration, which
             # aks-terraform gives the cluster's name as the post-build variable `cluster_name`.
             - name: CLUSTER_NAME
               value: "${cluster_name}"

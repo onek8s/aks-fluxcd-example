@@ -1,5 +1,6 @@
-# /boot-log/ of the team's hostnames, on the same listeners as aks-hello: a longer path prefix wins
-# over aks-hello's `/`, so https://<example hostname>/boot-log/log.txt is this app's file.
+# /boot-log/ of the team's hostname in this cluster, on the ext-fi Gateway like aks-hello's: a longer
+# path prefix wins over aks-hello's `/`, so https://hello-<cluster>.<zone domain>/boot-log/log.txt is
+# this app's file.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,9 +9,10 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      namespace: ingress-gateway
-      name: public
-      sectionName: https-example
+      namespace: ext-fi-gateway
+      name: ext-fi
+  hostnames:
+    - hello-${cluster_name}.${zone_domain}
   rules:
     - matches:
         - path:
