@@ -23,6 +23,8 @@ spec:
       # with Azure Policy mutations, which are not in place yet - so they are stated here.
       nodeSelector:
         platform/zone: ext-fi
+        # aks-hello:0.2.0 is an amd64 image; the zone's NodePools offer arm64 too.
+        kubernetes.io/arch: amd64
       tolerations:
         - key: platform/zone
           operator: Equal
