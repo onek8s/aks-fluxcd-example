@@ -1,8 +1,9 @@
-# Publishes the app on its zone's Gateway - `ext-fi` in `ext-fi-gateway`, Traefik Proxy for the
-# ext-fi isolation zone, which only the zone's application namespaces may attach to. The Gateway's one
-# listener is HTTPS for *.${zone_domain} with the zone's wildcard certificate, both the platform's
-# (onek8s/aks-fluxcd-platform); the route names its own hostnames below the zone's domain, which
-# aks-terraform gives the namespace's Flux configuration as ${zone_domain}.
+# Publishes the app on its zone's Gateway - `ext-fi` in `ext-fi-gateway`, served by AKS App Routing
+# (class approuting-istio) for the ext-fi isolation zone, which only the zone's application namespaces
+# may attach to. The Gateway's one listener is HTTPS for *.${zone_domain} with the zone's wildcard
+# certificate, both the platform's (onek8s/aks-fluxcd-platform); the route names its own hostnames
+# below the zone's domain, which aks-terraform gives the namespace's Flux configuration as
+# ${zone_domain}.
 #
 # This route is the app's name in this cell, hello-<cluster>.<zone domain>, which the cell's
 # external-dns publishes as an A record of the cell's ext-fi gateway. It is also what Azure Traffic
