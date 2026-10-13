@@ -16,8 +16,6 @@ spec:
     name: aks-hello
   updatePolicy:
     updateMode: InPlaceOrRecreate
-    # The lab runs one replica (see deployment.yaml); the updater's default of 2 would leave it alone.
-    minReplicas: 1
   resourcePolicy:
     containerPolicies:
       - containerName: aks-hello
