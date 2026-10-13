@@ -69,6 +69,13 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          # The VPA (verticalpodautoscaler.yaml) changes the requests of the running container in
+          # place; neither resource needs a restart for it.
+          resizePolicy:
+            - resourceName: cpu
+              restartPolicy: NotRequired
+            - resourceName: memory
+              restartPolicy: NotRequired
           # The namespace quota counts requests and limits of both CPU and memory, so a pod that
           # leaves any of them out is refused.
           resources:

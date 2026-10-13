@@ -13,3 +13,4 @@ resources:
   - service.yaml
   - httproute.yaml
   - poddisruptionbudget.yaml
+  - verticalpodautoscaler.yaml
