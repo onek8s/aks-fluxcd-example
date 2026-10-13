@@ -11,18 +11,22 @@ resources:
 # Lab cost exception (dev only): aks-hello runs on the cell's system node instead of the ext-fi
 # zone's NAP nodes, so the zone needs no node of its own and its NodePools stay at zero. The zone
 # placement is proven (isolation tests); drop this patch to go back to it. The pod keeps the zone's
-# namespace, Cilium baseline and gateway - only the node changes.
+# namespace, Cilium baseline and gateway - only the node changes. `platform/zone-placement: "off"`
+# keeps the platform's zone mutation from adding the zone's nodeSelector; the zone validation still
+# reports the pod (audit), which is how the exception stays visible.
 patches:
   - target:
       kind: Deployment
       name: aks-hello
     patch: |-
-      - op: replace
+      - op: add
+        path: /spec/template/metadata/labels/platform~1zone-placement
+        value: "off"
+      - op: add
         path: /spec/template/spec/nodeSelector
         value:
           kubernetes.azure.com/mode: system
-          kubernetes.io/arch: amd64
-      - op: replace
+      - op: add
         path: /spec/template/spec/tolerations
         value:
           - key: CriticalAddonsOnly

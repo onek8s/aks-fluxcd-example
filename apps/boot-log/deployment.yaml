@@ -11,14 +11,9 @@ spec:
   template:
     spec:
       automountServiceAccountToken: false
-      # The ext-fi zone's nodes - see aks-hello's deployment.
-      nodeSelector:
-        platform/zone: ext-fi
-      tolerations:
-        - key: platform/zone
-          operator: Equal
-          value: ext-fi
-          effect: NoSchedule
+      # On the ext-fi zone's nodes, amd64 on-demand (the defaults): the platform's Azure Policy
+      # mutations add the zone's nodeSelector and toleration from the namespace - see aks-hello's
+      # deployment.
       # The namespace enforces the restricted Pod Security Standard. fsGroup makes the disk writable
       # for the user the container runs as.
       securityContext:
