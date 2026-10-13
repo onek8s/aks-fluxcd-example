@@ -1,0 +1,31 @@
+# Pod right-sizing (OneK8s design section 4): the AKS VPA add-on (aks-terraform,
+# vertical_pod_autoscaler_enabled) resizes the running pods in place - no new pod, and with the
+# container's resizePolicy no restart - and evicts one only when the new size does not fit its node.
+#
+# Starting bounds from the declared requests: memory never below the request until there is usage
+# data, CPU down to a quarter of it, and at most twice the requests. Only requests move
+# (RequestsOnly); the limits in deployment.yaml stay, so memory maxAllowed stays under the 128Mi limit.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: aks-hello
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aks-hello
+  updatePolicy:
+    updateMode: InPlaceOrRecreate
+    # The lab runs one replica (see deployment.yaml); the updater's default of 2 would leave it alone.
+    minReplicas: 1
+  resourcePolicy:
+    containerPolicies:
+      - containerName: aks-hello
+        controlledResources: [cpu, memory]
+        controlledValues: RequestsOnly
+        minAllowed:
+          cpu: 3m
+          memory: 64Mi
+        maxAllowed:
+          cpu: 20m
+          memory: 128Mi
