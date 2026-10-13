@@ -19,7 +19,7 @@ state - aks-hello, not boot-log.
 apps/
   kustomization.yaml     # the apps in the namespace, one directory each
   aks-hello/             # onek8s/aks-hello, a .NET hello world website
-    deployment.yaml      # on the ext-fi zone's nodes, spot by choice
+    deployment.yaml      # amd64, spot by choice (labels platform/arch, platform/capacity)
     service.yaml
     httproute.yaml       # the app's names on the ext-fi zone's Gateway
     poddisruptionbudget.yaml
@@ -66,9 +66,12 @@ namespace's Flux configuration together with `${cluster_name}`. aks-hello has tw
 
 Both are served with the zone's wildcard certificate, on HTTPS only - there is no plain HTTP.
 
-**Placement.** The pods carry the ext-fi zone's node selector and toleration, and aks-hello also
-tolerates spot. The design has Azure Policy add these from the namespace's zone and the pod's
-`platform/capacity` label; until those mutations are in place, the manifests say so themselves.
+**Placement.** The pods state only what is the application's choice, as labels (design R17):
+`platform/arch` (`amd64` default, `arm64`, `multi`) and `platform/capacity` (`on-demand` default,
+`spot`). The platform's Azure Policy mutations (onek8s/azure-landing-zone `stacks/aks-policy`) turn
+them into the architecture nodeSelector and the spot toleration and preference, and pin every pod of
+`ext-fi-*` to the ext-fi zone's nodes; validations report a pod that selects nodes any other way.
+aks-hello is an amd64 image and may run on spot.
 
 **Egress.** Nothing leaves the namespace but cluster DNS unless an app declares it: a
 `CiliumNetworkPolicy` named `egress` listing every outside destination by FQDN with its ports, and the
