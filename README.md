@@ -45,7 +45,7 @@ routes to its apps.
 | `ext-fi-example` namespace in the ext-fi zone, its quota, default network policies and Pod Security Standard | aks-terraform | Platform |
 | The zone's Cilium baseline: in from the zone's gateway only, out to cluster DNS only | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
-| The ext-fi gateway: Traefik Proxy, its load balancer, the Gateway `ext-fi`, its HTTPS listener for `*.ext-fi.dev.onek8s.lol` and the zone's wildcard certificate | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
+| The ext-fi gateway: the Gateway's App Routing (Envoy) pods, its load balancer, the Gateway `ext-fi`, its HTTPS listener for `*.ext-fi.dev.onek8s.lol` and the zone's wildcard certificate | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
 | DNS: the routes' hostnames in Azure DNS, kept by external-dns; `hello.ext-fi.dev.onek8s.lol` in Azure Traffic Manager | aks-fluxcd-platform, aks-terraform (`shared/`: `global_hostnames`) | Platform |
 | The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.ext-fi-example.flux`) | Platform |
 | The namespace's share of the ext-fi zone's Key Vault, its webhook Receiver | aks-fluxcd-platform (`tenants/ext-fi-example`) | Platform |
