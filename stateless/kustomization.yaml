@@ -8,3 +8,22 @@ kind: Kustomization
 namespace: ext-fi-example
 resources:
   - ../apps/aks-hello
+# Lab cost exception (dev only): aks-hello runs on the cell's system node instead of the ext-fi
+# zone's NAP nodes, so the zone needs no node of its own and its NodePools stay at zero. The zone
+# placement is proven (isolation tests); drop this patch to go back to it. The pod keeps the zone's
+# namespace, Cilium baseline and gateway - only the node changes.
+patches:
+  - target:
+      kind: Deployment
+      name: aks-hello
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/nodeSelector
+        value:
+          kubernetes.azure.com/mode: system
+          kubernetes.io/arch: amd64
+      - op: replace
+        path: /spec/template/spec/tolerations
+        value:
+          - key: CriticalAddonsOnly
+            operator: Exists
