@@ -23,7 +23,7 @@ spec:
       # with Azure Policy mutations, which are not in place yet - so they are stated here.
       nodeSelector:
         platform/zone: ext-fi
-        # aks-hello:0.2.0 is an amd64 image; the zone's NodePools offer arm64 too.
+        # aks-hello:0.3.0 is an amd64 image; the zone's NodePools offer arm64 too.
         kubernetes.io/arch: amd64
       tolerations:
         - key: platform/zone
@@ -52,7 +52,7 @@ spec:
         - name: aks-hello
           # A version the registry has built - the <Version> of onek8s/aks-hello's
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acronek8sdev.azurecr.io/aks-hello:0.2.0
+          image: acronek8sdev.azurecr.io/aks-hello:0.3.0
           ports:
             - name: http
               containerPort: 8080
@@ -64,6 +64,11 @@ spec:
             # aks-terraform gives the cluster's name as the post-build variable `cluster_name`.
             - name: CLUSTER_NAME
               value: "${cluster_name}"
+            # The node, which /status reports.
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -85,16 +90,23 @@ spec:
             limits:
               cpu: 250m
               memory: 128Mi
+          # Readiness: healthy from the end of startup until SIGTERM - the pod leaves the Service
+          # while it shuts down. Liveness: the process still answers HTTP, nothing more, so a
+          # restart is never caused by something outside the container. Both from aks-hello 0.3.0.
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /health/ready
               port: http
             periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /health/live
               port: http
+            initialDelaySeconds: 10
             periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
           volumeMounts:
             - name: tmp
               mountPath: /tmp
