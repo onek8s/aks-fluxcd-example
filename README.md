@@ -9,7 +9,7 @@ clusters unchanged. aks-terraform gives the namespace a Flux configuration of it
 into it - its status is on the cluster's GitOps page in the Azure portal. Everything else - the apps'
 source and images - lives in the apps' own repositories.
 
-The stateless clusters, aks-dev-stateless-az1 and aks-dev-stateless-az2 - the design's cells - have
+The stateless clusters, aks-dev-ext-stateless-az1 and aks-dev-ext-stateless-az2 - the design's cells - have
 no persistent storage at all, so they sync `stateless/` instead: the apps of `apps/` that keep no
 state - aks-hello, not boot-log.
 
@@ -99,11 +99,11 @@ aks-fluxcd-platform's README, "Persistent volumes".
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
 it at `https://hello-<cluster>.ext-fi.dev.onek8s.lol/boot-log/log.txt` on
-aks-dev-stateful.
+aks-dev-ext-stateful.
 
 The stateless clusters - no disk CSI driver, no `portable-disk` StorageClass - do not run boot-log
 (they sync `stateless/`), so the steps below need another cluster with portable disks to move the
-disk to. They are kept for that: with a second stateful cluster, they move aks-dev-stateful's disk to
+disk to. They are kept for that: with a second stateful cluster, they move aks-dev-ext-stateful's disk to
 it.
 
 1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
@@ -111,7 +111,7 @@ it.
    the disk's resource ID.
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful -t managedClusters -n ext-fi-example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful -t managedClusters -n ext-fi-example --suspend true
    kubectl -n ext-fi-example scale deployment boot-log --replicas=0
    kubectl get pv "$(kubectl -n ext-fi-example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
      -o jsonpath='{.spec.csi.volumeHandle}'
@@ -123,7 +123,7 @@ it.
    PersistentVolume is cluster-wide, which the team cannot create):
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful-2 -t managedClusters -n ext-fi-example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n ext-fi-example --suspend true
    kubectl -n ext-fi-example scale deployment boot-log --replicas=0
    kubectl -n ext-fi-example delete pvc boot-log
    kubectl apply -f - <<'PV'
@@ -150,11 +150,11 @@ it.
    again, it binds to the reserved volume, and the pod starts on the moved disk:
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-stateful-2 -t managedClusters -n ext-fi-example --suspend false
-   curl https://hello-aks-dev-stateful-2.ext-fi.dev.onek8s.lol/boot-log/log.txt
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n ext-fi-example --suspend false
+   curl https://hello-aks-dev-ext-stateful-2.ext-fi.dev.onek8s.lol/boot-log/log.txt
    ```
 
-   The lines written on aks-dev-stateful's node are there, followed by one from this cluster's.
+   The lines written on aks-dev-ext-stateful's node are there, followed by one from this cluster's.
 
 The old cluster stays suspended for as long as the disk is the new one's; resuming it there would
 start the pod on a claim whose disk is attached elsewhere.
