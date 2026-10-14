@@ -31,3 +31,16 @@ patches:
         value:
           - key: CriticalAddonsOnly
             operator: Exists
+  # Lab cost exception (dev only): the dev cells run without the AKS VPA add-on (aks-terraform,
+  # vertical_pod_autoscaler_enabled = false), whose ~2.4 GiB of requests kept the cell from fitting on
+  # one 8 GiB system node - so they have no VerticalPodAutoscaler CRD, and aks-hello's VPA is left
+  # out. Its requests stay as deployment.yaml declares them. Drop this patch when the add-on is back.
+  - target:
+      kind: VerticalPodAutoscaler
+      name: aks-hello
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling.k8s.io/v1
+      kind: VerticalPodAutoscaler
+      metadata:
+        name: aks-hello
