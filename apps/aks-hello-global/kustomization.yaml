@@ -1,0 +1,10 @@
+# aks-hello's global name behind Azure Traffic Manager, hello.<zone domain>: for an external cell's
+# overlay only - see httproute.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/name: aks-hello
+resources:
+  - httproute.yaml

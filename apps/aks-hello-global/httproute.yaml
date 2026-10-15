@@ -1,0 +1,29 @@
+# Only for an external zone: aks-terraform creates a Traffic Manager profile only for a deployed
+# external zone (shared/: global_hostnames), so an internal cell - the lab's since 2026-10-15 - leaves
+# this directory out (stateless/, apps/).
+# hello.<zone domain>, the name every external cell serves at once: its record is a CNAME to aks-terraform's
+# Azure Traffic Manager profile, which hands out one cell or another and leaves out a cell whose
+# probe of /healthz fails. The controller annotation tells the cell's external-dns to leave the name
+# alone.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: aks-hello-global
+  annotations:
+    external-dns.kubernetes.io/controller: traffic-manager
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ${zone}-gateway
+      name: ${zone}
+  hostnames:
+    - hello.${zone_domain}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: aks-hello
+          port: 80

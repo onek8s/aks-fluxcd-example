@@ -1,11 +1,11 @@
 # aks-fluxcd-example
 
 An application team's repository in [OneK8s](https://onek8s.github.io/) - one Kubernetes platform for
-every cloud: what Flux deploys into the team's namespace in the **ext-fi** isolation zone,
-`ext-fi-example`, of the clusters built by [aks-terraform](https://github.com/onek8s/aks-terraform).
+every cloud: what Flux deploys into the team's namespace in the **int-fi** isolation zone,
+`int-fi-example`, of the clusters built by [aks-terraform](https://github.com/onek8s/aks-terraform).
 Nothing here names a cloud: plain Kubernetes and Gateway API manifests, which move to another cloud's
 clusters unchanged. aks-terraform gives the namespace a Flux configuration of its own, also named
-`ext-fi-example` (`managed_namespaces.ext-fi-example.flux`), that syncs `apps/` of this repository
+`int-fi-example` (`managed_namespaces.int-fi-example.flux`), that syncs `apps/` of this repository
 into it - its status is on the cluster's GitOps page in the Azure portal. Everything else - the apps'
 source and images - lives in the apps' own repositories.
 
@@ -21,7 +21,7 @@ apps/
   aks-hello/             # onek8s/aks-hello, a .NET hello world website
     deployment.yaml      # amd64, spot by choice (labels platform/arch, platform/capacity)
     service.yaml
-    httproute.yaml       # the app's names on the ext-fi zone's Gateway
+    httproute.yaml       # the app's names on the int-fi zone's Gateway
     poddisruptionbudget.yaml
   boot-log/              # a stateful example: a log of its own starts, on a portable-disk volume
     persistentvolumeclaim.yaml
@@ -42,23 +42,23 @@ routes to its apps.
 
 | | Where | |
 | --- | --- | --- |
-| `ext-fi-example` namespace in the ext-fi zone, its quota, default network policies and Pod Security Standard | aks-terraform | Platform |
+| `int-fi-example` namespace in the int-fi zone, its quota, default network policies and Pod Security Standard | aks-terraform | Platform |
 | The zone's Cilium baseline: in from the zone's gateway only, out to cluster DNS only | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
-| The ext-fi gateway: the Gateway's App Routing (Envoy) pods, its load balancer, the Gateway `ext-fi`, its HTTPS listener for `*.ext-fi.dev.onek8s.lol` and the zone's wildcard certificate | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
-| DNS: the routes' hostnames in Azure DNS, kept by external-dns; `hello.ext-fi.dev.onek8s.lol` in Azure Traffic Manager | aks-fluxcd-platform, aks-terraform (`shared/`: `global_hostnames`) | Platform |
-| The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.ext-fi-example.flux`) | Platform |
-| The namespace's share of the ext-fi zone's Key Vault, its webhook Receiver | aks-fluxcd-platform (`tenants/ext-fi-example`) | Platform |
+| The int-fi gateway: the Gateway's App Routing (Envoy) pods, its load balancer, the Gateway `int-fi`, its HTTPS listener for `*.int-fi.dev.onek8s.lol` and the zone's wildcard certificate | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
+| DNS: the routes' hostnames in the zone's Azure Private DNS (`int-fi.dev.onek8s.lol`), kept by external-dns-int. In an external zone also `hello.<zone domain>` in Azure Traffic Manager (`apps/aks-hello-global`; aks-terraform `shared/`: `global_hostnames`) - none for an internal zone | aks-fluxcd-platform, aks-terraform | Platform |
+| The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.int-fi-example.flux`) | Platform |
+| The namespace's share of the int-fi zone's Key Vault (no webhook Receiver in the internal cell: Flux polls) | aks-fluxcd-platform (`tenants/int-fi-example`) | Platform |
 | The container registry the images are pulled from, as the cluster's kubelet identity | aks-terraform (`shared/`, `container_registry_name`) | Platform |
 | The apps' `Deployment`, `Service`, `HTTPRoute` and egress policy | this repository | Team |
 | An app's source and image | the app's repository, e.g. [onek8s/aks-hello](https://github.com/onek8s/aks-hello) | Team |
 
-A route attaches to the zone's Gateway (`ext-fi` in `ext-fi-gateway`) and names its hostnames, below
-the zone's domain - `${zone_domain}`, `ext-fi.dev.onek8s.lol`, which aks-terraform gives the
+A route attaches to the zone's Gateway (`${zone}` in `${zone}-gateway`: `int-fi` in `int-fi-gateway`) and names its hostnames, below
+the zone's domain - `${zone_domain}`, `int-fi.dev.onek8s.lol`, which aks-terraform gives the
 namespace's Flux configuration together with `${cluster_name}`. aks-hello has two:
 
 - `hello-${cluster_name}.${zone_domain}` - its name in each cluster, which the cluster's external-dns
-  publishes as an A record of the cluster's ext-fi gateway;
+  publishes as an A record of the cluster's int-fi gateway;
 - `hello.${zone_domain}` - its name in every cell at once, behind aks-terraform's Azure Traffic
   Manager, which hands out one cell or another (the page says which cluster answered). That route
   carries `external-dns.kubernetes.io/controller: traffic-manager`, so external-dns leaves the name
@@ -70,19 +70,19 @@ Both are served with the zone's wildcard certificate, on HTTPS only - there is n
 `platform/arch` (`amd64` default, `arm64`, `multi`) and `platform/capacity` (`on-demand` default,
 `spot`). The platform's Azure Policy mutations (onek8s/azure-landing-zone `stacks/aks-policy`) turn
 them into the architecture nodeSelector and the spot toleration and preference, and pin every pod of
-`ext-fi-*` to the ext-fi zone's nodes; validations report a pod that selects nodes any other way.
+`int-fi-*` to the int-fi zone's nodes; validations report a pod that selects nodes any other way.
 aks-hello is an amd64 image and may run on spot.
 
 **Egress.** Nothing leaves the namespace but cluster DNS unless an app declares it: a
 `CiliumNetworkPolicy` named `egress` listing every outside destination by FQDN with its ports, and the
 same names in its DNS rule (design section 16). aks-hello needs nothing outside the cluster and has
-none. CI checks every egress policy against the platform's rules and the ext-fi zone's allow-list
+none. CI checks every egress policy against the platform's rules and the int-fi zone's allow-list
 (`.github/workflows/ci.yml`).
 
 Flux applies `apps/` as the AKS Flux extension's `flux-applier` service account of the
-`ext-fi-example` namespace, and the extension refuses references across namespaces - so this
+`int-fi-example` namespace, and the extension refuses references across namespaces - so this
 repository can only ever change that namespace. `apps/kustomization.yaml` sets `namespace:
-ext-fi-example` on everything, since the configuration has no `targetNamespace` to do it.
+int-fi-example` on everything, since the configuration has no `targetNamespace` to do it.
 
 [roles]: https://gateway-api.sigs.k8s.io/concepts/roles-and-personas/
 
@@ -98,7 +98,7 @@ aks-fluxcd-platform's README, "Persistent volumes".
 ### Moving boot-log to another cluster
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
-it at `https://hello-<cluster>.ext-fi.dev.onek8s.lol/boot-log/log.txt` on
+it at `https://hello-<cluster>.int-fi.dev.onek8s.lol/boot-log/log.txt` on
 aks-dev-ext-stateful.
 
 The stateless clusters - no disk CSI driver, no `portable-disk` StorageClass - do not run boot-log
@@ -111,9 +111,9 @@ it.
    the disk's resource ID.
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful -t managedClusters -n ext-fi-example --suspend true
-   kubectl -n ext-fi-example scale deployment boot-log --replicas=0
-   kubectl get pv "$(kubectl -n ext-fi-example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful -t managedClusters -n int-fi-example --suspend true
+   kubectl -n int-fi-example scale deployment boot-log --replicas=0
+   kubectl get pv "$(kubectl -n int-fi-example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
      -o jsonpath='{.spec.csi.volumeHandle}'
    ```
 
@@ -123,9 +123,9 @@ it.
    PersistentVolume is cluster-wide, which the team cannot create):
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n ext-fi-example --suspend true
-   kubectl -n ext-fi-example scale deployment boot-log --replicas=0
-   kubectl -n ext-fi-example delete pvc boot-log
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n int-fi-example --suspend true
+   kubectl -n int-fi-example scale deployment boot-log --replicas=0
+   kubectl -n int-fi-example delete pvc boot-log
    kubectl apply -f - <<'PV'
    apiVersion: v1
    kind: PersistentVolume
@@ -138,7 +138,7 @@ it.
      persistentVolumeReclaimPolicy: Retain
      storageClassName: portable-disk
      claimRef:
-       namespace: ext-fi-example
+       namespace: int-fi-example
        name: boot-log
      csi:
        driver: disk.csi.azure.com
@@ -150,8 +150,8 @@ it.
    again, it binds to the reserved volume, and the pod starts on the moved disk:
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n ext-fi-example --suspend false
-   curl https://hello-aks-dev-ext-stateful-2.ext-fi.dev.onek8s.lol/boot-log/log.txt
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n int-fi-example --suspend false
+   curl https://hello-aks-dev-ext-stateful-2.int-fi.dev.onek8s.lol/boot-log/log.txt
    ```
 
    The lines written on aks-dev-ext-stateful's node are there, followed by one from this cluster's.
@@ -176,7 +176,7 @@ namespace by an `ExternalSecret` of the platform's - and names the synced Secret
 The images need no secret: they are in the environment's Azure Container Registry, and each cluster
 pulls them as its kubelet identity, which has `AcrPull` there (aks-terraform).
 
-Any secret an app needs goes in the ext-fi zone's vault as `ext-fi-example--<name>`, with an `ExternalSecret` in `apps/`
+Any secret an app needs goes in the int-fi zone's vault as `int-fi-example--<name>`, with an `ExternalSecret` in `apps/`
 against the namespace's `key-vault` SecretStore - the namespace's identity reads only the secrets
 under that prefix.
 

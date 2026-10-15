@@ -19,7 +19,7 @@ spec:
         # Placement is the application's choice, stated as labels (design R17): aks-hello:0.3.0 is
         # an amd64 image, and it may run on spot. The platform's Azure Policy mutations turn them
         # into the architecture nodeSelector, the spot toleration and a preference for spot nodes,
-        # and put the pod on the ext-fi zone's nodes (platform/zone selector and toleration) from
+        # and put the pod on the int-fi zone's nodes (platform/zone selector and toleration) from
         # its namespace; NAP falls back to on-demand when Azure has no spot capacity.
         platform/arch: amd64
         platform/capacity: spot
@@ -53,8 +53,8 @@ spec:
           env:
             - name: DOTNET_EnableDiagnostics
               value: "0"
-            # The cluster the pod runs in, which the page shows: hello.ext-fi.dev.onek8s.lol is
-            # served by every stateless cell at once. Filled in by the namespace's Flux configuration, which
+            # The cluster the pod runs in, which the page shows: in an external zone hello.<zone domain>
+            # is served by every stateless cell at once. Filled in by the namespace's Flux configuration, which
             # aks-terraform gives the cluster's name as the post-build variable `cluster_name`.
             - name: CLUSTER_NAME
               value: "${cluster_name}"
