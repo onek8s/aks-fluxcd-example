@@ -1,0 +1,10 @@
+# aks-hello's name in an internal zone, hello.<zone domain>, published by its home cell only: for an
+# internal cell's overlay - see httproute.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/name: aks-hello
+resources:
+  - httproute.yaml
