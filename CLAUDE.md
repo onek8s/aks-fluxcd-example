@@ -16,7 +16,7 @@ in audit), so dev runs no zone nodes at all; remove that patch to go back to the
 `kustomize build` and the fleet's `check-egress.py`.
 
 **Firewall-egress cell (design D59, 2026-10-15):** `firewall-egress/` is what the lab's az3 cell syncs into
-`int-se-example` (Sweden's zone): aks-hello 0.4.0 on the zone's own nodes (no system-node patch: a cell without an
+`int-se-example` (Sweden's zone): aks-hello 0.5.0 on the zone's own nodes (no system-node patch: a cell without an
 overlay identifies the zone at the hub firewall by the pod's subnet), with a Stockholm weather forecast from
 api.open-meteo.com. No Cilium FQDN policy: the hub firewall decides that egress, and denies it until
 azure-landing-zone's `firewall-applications/dev-int/int-se-example.yaml` allows it - proposed by the egress agent
