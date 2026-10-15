@@ -1,7 +1,7 @@
 name: CI
 
 # Builds what Flux applies, and checks the apps' egress policies against the platform's rules and the
-# ext-fi zone's allow-list (OneK8s design section 16; onek8s/aks-fluxcd-platform,
+# int-fi zone's allow-list (OneK8s design section 16; onek8s/aks-fluxcd-platform,
 # scripts/check-egress.py and policy/egress-allow-lists.yaml) - so a name the zone does not allow is
 # found in the pull request, not as a timeout in the cluster.
 #
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       KUSTOMIZE_VERSION: v5.4.3
-      ZONE: ext-fi
+      ZONE: int-fi
     steps:
       - uses: actions/checkout@v7
 

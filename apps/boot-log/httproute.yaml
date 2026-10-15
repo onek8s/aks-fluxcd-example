@@ -1,4 +1,4 @@
-# /boot-log/ of the team's hostname in this cluster, on the ext-fi Gateway like aks-hello's: a longer
+# /boot-log/ of the team's hostname in this cluster, on the zone's Gateway like aks-hello's: a longer
 # path prefix wins over aks-hello's `/`, so https://hello-<cluster>.<zone domain>/boot-log/log.txt is
 # this app's file.
 apiVersion: gateway.networking.k8s.io/v1
@@ -9,8 +9,8 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      namespace: ext-fi-gateway
-      name: ext-fi
+      namespace: ${zone}-gateway
+      name: ${zone}
   hostnames:
     - hello-${cluster_name}.${zone_domain}
   rules:
