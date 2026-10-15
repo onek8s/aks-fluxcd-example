@@ -3,7 +3,7 @@
 # NAP nodes - not on the system node like stateless/ - because a cell without an overlay gives its pods
 # addresses of their node's subnet, and only the zone's subnet tells the hub's firewall whose flow it is.
 #
-# aks-hello 0.4.0 fetches a weather forecast from the internet (api.open-meteo.com). Nothing here opens that:
+# aks-hello 0.4.1 fetches (and refreshes every minute) a weather forecast from the internet (api.open-meteo.com). Nothing here opens that:
 # the zone leaves its egress to the hub's firewall, which denies it until the application's firewall rule
 # exists (azure-landing-zone, firewall-applications/dev-int/int-se-example.yaml) - proposed by the egress
 # agent (onek8s/aks-ai-agents) from the denied flows, and merged by a human. Until then the page shows why
@@ -16,7 +16,7 @@ resources:
   - ../apps/aks-hello-home
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
-    newTag: 0.4.0
+    newTag: 0.4.1
 patches:
   - target:
       kind: Deployment
