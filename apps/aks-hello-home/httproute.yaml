@@ -1,8 +1,10 @@
 # hello.<zone domain> in an internal zone (OneK8s design section 8): an internal app runs in one home
 # cell, and its name points straight to the zone gateway there - an A record in the zone's private DNS,
-# kept by the home cell's external-dns, which publishes only routes annotated platform/dns-publish=true.
-# Every cell serves the route; `dns_publish` (aks-terraform, the namespace's Flux configuration,
-# true in the home cell only) decides which cell publishes it. Moving the app to another cell is the
+# kept by the home cell's external-dns, which publishes only routes whose platform/home-cell names its
+# own cluster. Every cell serves the route; `home_cell` (aks-terraform, the namespace's Flux
+# configuration - the same cluster name in every cell) decides which cell publishes it. A cluster name,
+# not true/false: kustomize drops the quotes, and a substituted `true` becomes a YAML boolean, which an
+# annotation refuses. Moving the app to another cell is the
 # design's migration workflow, not built yet. An external zone's equivalent is ../aks-hello-global
 # (Traffic Manager, every cell at once).
 apiVersion: gateway.networking.k8s.io/v1
@@ -10,7 +12,7 @@ kind: HTTPRoute
 metadata:
   name: aks-hello-home
   annotations:
-    platform/dns-publish: "${dns_publish:=false}"
+    platform/home-cell: "${home_cell:=none}"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
