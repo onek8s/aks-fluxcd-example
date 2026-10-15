@@ -43,6 +43,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/built"
           kustomize build apps > "$RUNNER_TEMP/built/apps.yaml"
           kustomize build stateless > "$RUNNER_TEMP/built/stateless.yaml"
+          kustomize build firewall-egress > "$RUNNER_TEMP/built/firewall-egress.yaml"
 
       - name: Egress policies
         run: |
