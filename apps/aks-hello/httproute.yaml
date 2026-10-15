@@ -8,12 +8,15 @@
 #
 # This route is the app's name in this cell, hello-<cluster>.<zone domain>, which the cell's
 # external-dns publishes as an A record of the cell's zone gateway - in the zone's private DNS for an
-# internal zone. In an external cell it is also what Azure Traffic Manager sends hello.<zone domain>
-# to (../aks-hello-global).
+# internal zone, whose external-dns publishes only routes annotated platform/dns-publish=true. In an
+# external cell it is also what Azure Traffic Manager sends hello.<zone domain> to (../aks-hello-global);
+# in an internal one, hello.<zone domain> is the home cell's (../aks-hello-home).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: aks-hello
+  annotations:
+    platform/dns-publish: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

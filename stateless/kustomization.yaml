@@ -2,7 +2,8 @@
 # boot-log, whose volume such a cluster cannot provide. The stateless cell (aks-dev-int-stateless-az1, the
 # lab's internal cell, zone int-fi) syncs this directory instead of apps/ (aks-terraform,
 # envs/dev-int-stateless-az1.tfvars: managed_namespaces.int-fi-example.flux.path). No Traffic Manager
-# route (../apps/aks-hello-global): that is an external zone's.
+# route (../apps/aks-hello-global): that is an external zone's; an internal zone's app name is its home
+# cell's (../apps/aks-hello-home).
 #
 # An app added to apps/ that needs no volume is added here too.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -10,6 +11,7 @@ kind: Kustomization
 namespace: int-fi-example
 resources:
   - ../apps/aks-hello
+  - ../apps/aks-hello-home
 # Lab cost exception (dev only): aks-hello runs on the cell's system node instead of the int-fi
 # zone's NAP nodes, so the zone needs no node of its own and its NodePools stay at zero. The zone
 # placement is proven (isolation tests); drop this patch to go back to it. The pod keeps the zone's
