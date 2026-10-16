@@ -8,8 +8,8 @@
 #       (azure-landing-zone, rollout-guardrails: an application switched off).
 #   2 - running (the guardrails' minimum in a stateless cell).
 #
-# Flip it with the "Lab scale" workflow (.github/workflows/lab-scale.yml: replicas 0 or 2 - it edits this
-# file, builds every cell directory and pushes to main), or by hand in a pull request. Flux applies main
+# Flip it with aks-terraform's "Lab power" workflow (`scale`: 0 before a stop, 2 after a start - it commits the number
+# here on main, since this repository's own Actions do not run), or by hand in a pull request. Flux applies main
 # within a minute. Nothing else changes: routes, gateways, namespaces, policies and the Deployment stay.
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component

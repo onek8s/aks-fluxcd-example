@@ -46,9 +46,9 @@ application off - its pods go, NAP removes the zones' nodes within minutes, and 
 system node alone; `2` runs it again (the platform's rollout guardrails allow 0 and at least 2,
 nothing between). Nothing else changes: the routes, gateways, namespaces and the Deployment stay.
 
-Flip it with the **Lab scale** workflow (Actions, `replicas` 0 or 2): it edits that file, builds
-every cell directory and pushes to `main`, which the cells' Flux configurations apply within a
-minute. Or change the number in a pull request.
+Flip it with aks-terraform's **Lab power** workflow (`scale`: it commits `0` here before stopping
+the clusters and `2` after starting them - this repository's own Actions do not run), or change the
+number in a pull request. The cells' Flux configurations apply `main` within a minute.
 
 ## Who owns what
 
