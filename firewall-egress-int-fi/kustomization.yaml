@@ -1,0 +1,44 @@
+# The apps of apps/ for the overlay + firewall-only cell (aks-terraform envs/dev-int-stateless-az2.tfvars:
+# managed_namespaces.int-fi-example.flux.path, design D61): aks-hello in the int-fi zone, on the zone's own NAP
+# nodes - not on the system node like stateless/ - because with an overlay the hub's firewall sees the pod's
+# node address, and only the zone's node subnet tells it whose flow it is.
+#
+# aks-hello 0.4.1 fetches (and refreshes every minute) a Helsinki weather forecast from the internet
+# (api.open-meteo.com); not yet 0.5.0's public IP query. Nothing here opens it: no Cilium FQDN policy (the cell
+# has no ACNS), the zone leaves its egress to the hub's firewall, which denies it until the application's
+# firewall rule exists (azure-landing-zone, firewall-applications/dev-int/int-fi-example.yaml) - proposed by the
+# egress agent (onek8s/aks-ai-agents) from the denied flows, and merged by a human.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: int-fi-example
+resources:
+  - ../apps/aks-hello
+  - ../apps/aks-hello-home
+images:
+  - name: acronek8sdev.azurecr.io/aks-hello
+    newTag: 0.4.1
+patches:
+  - target:
+      kind: Deployment
+      name: aks-hello
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: WEATHER_PLACE
+          value: Helsinki
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: WEATHER_URL
+          value: https://api.open-meteo.com/v1/forecast?latitude=60.17&longitude=24.94&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=3
+  # Lab cost exception (dev only): the dev cells run without the AKS VPA add-on, so aks-hello's VPA is left out.
+  - target:
+      kind: VerticalPodAutoscaler
+      name: aks-hello
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling.k8s.io/v1
+      kind: VerticalPodAutoscaler
+      metadata:
+        name: aks-hello
