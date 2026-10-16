@@ -1,0 +1,18 @@
+# The lab's one switch for aks-hello's copies (dev only): how many replicas every cell runs. The cell
+# directories (firewall-egress/, firewall-egress-int-fi/, stateless/) include this component, so the
+# count below is the replicas of aks-hello in every cell at once - the deployment's own `replicas: 2`
+# stays as the application's statement and is overridden here only.
+#
+#   0 - switched off (a weekend, a pause): no application pod, so NAP removes the zones' nodes within
+#       minutes and the cell is its system node alone. The platform's rollout guardrails allow 0 on purpose
+#       (azure-landing-zone, rollout-guardrails: an application switched off).
+#   2 - running (the guardrails' minimum in a stateless cell).
+#
+# Flip it with aks-terraform's "Lab power" workflow (`scale`: 0 before a stop, 2 after a start - it commits the number
+# here on main, since this repository's own Actions do not run), or by hand in a pull request. Flux applies main
+# within a minute. Nothing else changes: routes, gateways, namespaces, policies and the Deployment stay.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+replicas:
+  - name: aks-hello
+    count: 0

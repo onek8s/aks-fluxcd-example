@@ -30,10 +30,25 @@ apps/
     httproute.yaml       # /boot-log/ of aks-hello's name in the cluster
 stateless/
   kustomization.yaml     # the apps that keep no state, for the stateless clusters: aks-hello only
+lab/
+  scale/                 # the lab's replica switch for aks-hello in every cell: 0 (off) or 2 (running)
 ```
 
 Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml` - and in
 `stateless/kustomization.yaml`, as `../apps/<app>`, if it needs no volume.
+
+## Switching the lab's copies off and on
+
+The lab pays for a zone node only while an application pod runs on it. `lab/scale/kustomization.yaml`
+is one kustomize component every cell directory (`firewall-egress/`, `firewall-egress-int-fi/`,
+`stateless/`) includes, with one number: aks-hello's replicas in every cell. `0` switches the
+application off - its pods go, NAP removes the zones' nodes within minutes, and each cell is its
+system node alone; `2` runs it again (the platform's rollout guardrails allow 0 and at least 2,
+nothing between). Nothing else changes: the routes, gateways, namespaces and the Deployment stay.
+
+Flip it with aks-terraform's **Lab power** workflow (`scale`: it commits `0` here before stopping
+the clusters and `2` after starting them - this repository's own Actions do not run), or change the
+number in a pull request. The cells' Flux configurations apply `main` within a minute.
 
 ## Who owns what
 

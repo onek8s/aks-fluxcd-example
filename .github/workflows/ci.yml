@@ -44,6 +44,7 @@ jobs:
           kustomize build apps > "$RUNNER_TEMP/built/apps.yaml"
           kustomize build stateless > "$RUNNER_TEMP/built/stateless.yaml"
           kustomize build firewall-egress > "$RUNNER_TEMP/built/firewall-egress.yaml"
+          kustomize build firewall-egress-int-fi > "$RUNNER_TEMP/built/firewall-egress-int-fi.yaml"
 
       - name: Egress policies
         run: |
