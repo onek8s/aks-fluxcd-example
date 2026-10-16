@@ -27,3 +27,11 @@ azure-landing-zone's `firewall-applications/dev-int/int-se-example.yaml` allows 
 `int-fi-example`: aks-hello 0.5.0 (Helsinki forecast from api.open-meteo.com, public IP from api.ipify.org) on int-fi's own zone
 nodes. az2 has no ACNS, so no Cilium FQDN policy: the hub firewall decides, per zone (it sees the zone's node addresses),
 from azure-landing-zone's `firewall-applications/dev-int/int-fi-example.yaml` - proposed by the egress agent, merged by a human.
+
+**Lab replica switch (2026-10-16, the user's ask - weekend cost):** `lab/scale/kustomization.yaml` is a kustomize
+component (`replicas: aks-hello count`) included by `firewall-egress/`, `firewall-egress-int-fi/` and `stateless/`: one
+number for aks-hello's replicas in every cell. 0 = off (no pod, NAP removes the zones' nodes, the cell is its system node
+alone - set 2026-10-16 for the weekend), 2 = running. The rollout guardrails allow 0 on purpose. Flip it with the
+`Lab scale` workflow (`.github/workflows/lab-scale.yml`, input `replicas` 0 or 2, pushes to main; CI does not run on its
+push, the workflow builds every cell directory itself) or by hand in a PR. **Scale up before any test that needs the app**
+(Isolation tests, Cluster status routes - a route answers 503/404 with no pod).

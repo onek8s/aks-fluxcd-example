@@ -1,0 +1,75 @@
+name: Lab scale
+
+# The lab's switch for aks-hello's copies in every cell (lab/scale/kustomization.yaml): 0 switches the
+# application off - no pod, so NAP removes the zones' nodes and a cell is its system node alone (a
+# weekend) - and 2 runs it again. The workflow edits that one file, builds every cell directory with it,
+# and pushes to main; the cells' Flux configurations apply main within a minute. Nothing is removed:
+# the routes, gateways and the Deployment stay, only its replicas change.
+on:
+  workflow_dispatch:
+    inputs:
+      replicas:
+        description: "aks-hello replicas in every cell: 0 = off (weekend), 2 = running"
+        required: true
+        default: "0"
+        type: choice
+        options: ["0", "2"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lab-scale
+
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: v5.4.3
+      REPLICAS: ${{ inputs.replicas }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Install kustomize
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/kustomize.tgz" \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          tar -xzf "$RUNNER_TEMP/kustomize.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Set the replicas
+        run: |
+          set -euo pipefail
+          sed -i -E "s/^(    count: )[0-9]+$/\1${REPLICAS}/" lab/scale/kustomization.yaml
+          grep -q "^    count: ${REPLICAS}$" lab/scale/kustomization.yaml
+          git diff --stat
+
+      - name: Build every cell directory
+        run: |
+          set -euo pipefail
+          for dir in stateless firewall-egress firewall-egress-int-fi; do
+            kustomize build "$dir" > "$RUNNER_TEMP/$dir.yaml"
+            python3 - "$RUNNER_TEMP/$dir.yaml" "$REPLICAS" <<'PY'
+          import sys, yaml
+          built, want = sys.argv[1], int(sys.argv[2])
+          docs = [d for d in yaml.safe_load_all(open(built)) if d]
+          got = {d["metadata"]["name"]: d["spec"].get("replicas") for d in docs if d["kind"] == "Deployment"}
+          assert got == {"aks-hello": want}, f"{built}: {got}, wanted {want}"
+          print(f"{built}: aks-hello replicas {want}")
+          PY
+          done
+
+      - name: Push to main
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "already ${REPLICAS}: nothing to push"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Lab scale: aks-hello replicas ${REPLICAS} in every cell"
+          git push origin HEAD:main
+          echo "aks-hello scaled to ${REPLICAS} replicas in every cell; Flux applies it within a minute" >> "$GITHUB_STEP_SUMMARY"

@@ -12,6 +12,9 @@ namespace: int-fi-example
 resources:
   - ../apps/aks-hello
   - ../apps/aks-hello-home
+# The lab's replica switch (lab/scale: 0 = switched off, 2 = running), the same in every cell.
+components:
+  - ../lab/scale
 # Lab cost exception (dev only): aks-hello runs on the cell's system node instead of the int-fi
 # zone's NAP nodes, so the zone needs no node of its own and its NodePools stay at zero. The zone
 # placement is proven (isolation tests); drop this patch to go back to it. The pod keeps the zone's
