@@ -3,10 +3,11 @@
 # nodes - not on the system node like stateless/ - because with an overlay the hub's firewall sees the pod's
 # node address, and only the zone's node subnet tells it whose flow it is.
 #
-# aks-hello 0.4.1 fetches (and refreshes every minute) a Helsinki weather forecast from the internet
-# (api.open-meteo.com); not yet 0.5.0's public IP query. Nothing here opens it: no Cilium FQDN policy (the cell
-# has no ACNS), the zone leaves its egress to the hub's firewall, which denies it until the application's
-# firewall rule exists (azure-landing-zone, firewall-applications/dev-int/int-fi-example.yaml) - proposed by the
+# aks-hello 0.5.0 fetches (and refreshes every minute) a Helsinki weather forecast from the internet
+# (api.open-meteo.com) and asks api.ipify.org once at start for the public IP its flows leave from (/public-ip:
+# labfw's address, since the firewall SNATs everything leaving the landing zone). Nothing here opens either: no
+# Cilium FQDN policy (the cell has no ACNS), the zone leaves its egress to the hub's firewall, which denies it
+# until the application's firewall rule exists (azure-landing-zone, firewall-applications/dev-int/int-fi-example.yaml) - proposed by the
 # egress agent (onek8s/aks-ai-agents) from the denied flows, and merged by a human.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -16,7 +17,7 @@ resources:
   - ../apps/aks-hello-home
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
-    newTag: 0.4.1
+    newTag: 0.5.0
 patches:
   - target:
       kind: Deployment

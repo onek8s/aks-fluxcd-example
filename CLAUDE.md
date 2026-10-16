@@ -24,6 +24,6 @@ azure-landing-zone's `firewall-applications/dev-int/int-se-example.yaml` allows 
 
 
 **Overlay + firewall-only cell (design D61, 2026-10-16):** `firewall-egress-int-fi/` is what the lab's az2 cell syncs into
-`int-fi-example`: aks-hello 0.4.1 (Helsinki forecast from api.open-meteo.com, no public IP query) on int-fi's own zone
+`int-fi-example`: aks-hello 0.5.0 (Helsinki forecast from api.open-meteo.com, public IP from api.ipify.org) on int-fi's own zone
 nodes. az2 has no ACNS, so no Cilium FQDN policy: the hub firewall decides, per zone (it sees the zone's node addresses),
 from azure-landing-zone's `firewall-applications/dev-int/int-fi-example.yaml` - proposed by the egress agent, merged by a human.
