@@ -39,16 +39,16 @@ Adding an app is a new directory under `apps/` and a line in `apps/kustomization
 
 ## Switching the lab's copies off and on
 
-The lab pays for a zone node only while an application pod runs on it. `lab/scale/kustomization.yaml`
-is one kustomize component every cell directory (`firewall-egress/`, `firewall-egress-int-fi/`,
-`stateless/`) includes, with one number: aks-hello's replicas in every cell. `0` switches the
-application off - its pods go, NAP removes the zones' nodes within minutes, and each cell is its
-system node alone; `2` runs it again (the platform's rollout guardrails allow 0 and at least 2,
-nothing between). Nothing else changes: the routes, gateways, namespaces and the Deployment stay.
+A pause of the whole lab is aks-terraform's **Lab power** workflow: its `stop` suspends the cells'
+Flux configurations, scales the apps down in the clusters, turns NAP off and stops the clusters (the
+hub's firewall last); its `start` reverts that, and Flux puts the state of Git back. Nothing here changes.
 
-Flip it with aks-terraform's **Lab power** workflow (`scale`: it commits `0` here before stopping
-the clusters and `2` after starting them - this repository's own Actions do not run), or change the
-number in a pull request. The cells' Flux configurations apply `main` within a minute.
+`lab/scale/kustomization.yaml` is a Git-only switch next to it: one kustomize component every cell
+directory (`firewall-egress/`, `firewall-egress-int-fi/`, `stateless/`) includes, with one number -
+aks-hello's replicas in every cell. `2` is running; `0` switches the application off with the clusters
+running - its pods go and NAP removes the zones' nodes within minutes (the platform's rollout
+guardrails allow 0 and at least 2, nothing between). Keep it at 2 for a Lab power `start` to bring
+the app back. Change it in a pull request; the cells' Flux configurations apply `main` within a minute.
 
 ## Who owns what
 

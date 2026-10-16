@@ -30,8 +30,8 @@ from azure-landing-zone's `firewall-applications/dev-int/int-fi-example.yaml` - 
 
 **Lab replica switch (2026-10-16, the user's ask - weekend cost):** `lab/scale/kustomization.yaml` is a kustomize
 component (`replicas: aks-hello count`) included by `firewall-egress/`, `firewall-egress-int-fi/` and `stateless/`: one
-number for aks-hello's replicas in every cell. 0 = off (no pod, NAP removes the zones' nodes, the cell is its system node
-alone - set 2026-10-16 for the weekend), 2 = running. The rollout guardrails allow 0 on purpose. Flip it with aks-terraform's
-`Lab power` workflow (`lab-power.yml`, `scale`: commits 0 here before a stop and 2 after a start with GH_OWNER - this
-repo's Actions never run) or by hand in a PR. **Scale up before any test that needs the app**
-(Isolation tests, Cluster status routes - a route answers 503/404 with no pod).
+number for aks-hello's replicas in every cell - **2 = running, what Git says** (keep it so: aks-terraform's `Lab power`
+start resumes Flux, which puts this number back); 0 = switched off in Git with the clusters running (no pod, NAP removes
+the zones' nodes; the rollout guardrails allow 0). The lab's pause is `Lab power` (aks-terraform `lab-power.yml`), which
+leaves Git alone: stop = Flux suspended, apps scaled to 0 in the cluster, NAP off, clusters stopped, labfw last. While a
+cell is stopped or Flux is suspended, nothing merged here reaches it until the start. A route answers 404/503 with no pod.
