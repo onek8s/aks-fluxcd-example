@@ -90,7 +90,7 @@ aks-hello is an amd64 image and may run on spot.
 
 **Egress.** Nothing leaves the namespace but cluster DNS unless an app declares it: a
 `CiliumNetworkPolicy` named `egress` listing every outside destination by FQDN with its ports, and the
-same names in its DNS rule (design section 16). aks-hello needs nothing outside the cluster and has
+same names in its DNS rule (design section 17). aks-hello needs nothing outside the cluster and has
 none. CI checks every egress policy against the platform's rules and the int-fi zone's allow-list
 (`.github/workflows/ci.yml`).
 

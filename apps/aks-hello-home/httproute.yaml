@@ -1,4 +1,4 @@
-# hello.<zone domain> in an internal zone (OneK8s design section 8): an internal app runs in one home
+# hello.<zone domain> in an internal zone (OneK8s design section 10): an internal app runs in one home
 # cell, and its name points straight to the zone gateway there - an A record in the zone's private DNS,
 # kept by the home cell's external-dns, which publishes only routes whose platform/home-cell names its
 # own cluster. Every cell serves the route; `home_cell` (aks-terraform, the namespace's Flux
