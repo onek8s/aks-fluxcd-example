@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: aks-hello
 spec:
-  # The platform's rollout guardrails (design section 13, Azure Policy rollout-guardrails): at least
+  # The platform's rollout guardrails (design section 3.4, Azure Policy rollout-guardrails): at least
   # two replicas spread over nodes, and a release that adds the new pod before it takes an old one
   # away, so a node loss or a rollout is never an outage.
   replicas: 2
