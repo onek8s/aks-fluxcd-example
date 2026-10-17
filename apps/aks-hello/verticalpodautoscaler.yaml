@@ -1,4 +1,4 @@
-# Pod right-sizing (OneK8s design section 4): the AKS VPA add-on (aks-terraform,
+# Pod right-sizing (OneK8s design section 5): the AKS VPA add-on (aks-terraform,
 # vertical_pod_autoscaler_enabled) resizes the running pods in place - no new pod, and with the
 # container's resizePolicy no restart - and evicts one only when the new size does not fit its node.
 #
