@@ -7,3 +7,8 @@ spec:
     - name: http
       port: 80
       targetPort: http
+      # HTTP/2 upstream (design section 4.1, D69): the zone gateway connects to the pod over HTTP/2
+      # cleartext with prior knowledge (h2c), never HTTP/1.1 - the hop request smuggling needs. Kestrel
+      # serves h2c on the plain port by default; the kubelet's probes still use HTTP/1.1 on the same
+      # port until Kubernetes 1.38. The platform's policy requires the field on every routed port.
+      appProtocol: kubernetes.io/h2c
