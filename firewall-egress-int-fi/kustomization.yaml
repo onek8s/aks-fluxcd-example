@@ -20,7 +20,7 @@ components:
   - ../lab/scale
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
-    newTag: 0.5.1
+    newTag: 0.5.2
 patches:
   - target:
       kind: Deployment
