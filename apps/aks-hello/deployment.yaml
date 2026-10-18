@@ -46,10 +46,14 @@ spec:
         - name: aks-hello
           # A version the registry has built - the <Version> of onek8s/aks-hello's
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acronek8sdev.azurecr.io/aks-hello:0.3.0
+          image: acronek8sdev.azurecr.io/aks-hello:0.5.2
           ports:
+            # HTTP/1.1, for the kubelet's probes below (httpGet speaks HTTP/1.1 until Kubernetes 1.38)
             - name: http
               containerPort: 8080
+            # HTTP/2 cleartext only (h2c), what the Service sends the gateway's requests to (aks-hello 0.5.2+)
+            - name: h2c
+              containerPort: 8081
           env:
             - name: DOTNET_EnableDiagnostics
               value: "0"
