@@ -35,3 +35,9 @@ start resumes Flux, which puts this number back); 0 = switched off in Git with t
 the zones' nodes; the rollout guardrails allow 0). The lab's pause is `Lab power` (aks-terraform `lab-power.yml`), which
 leaves Git alone: stop = Flux suspended, apps scaled to 0 in the cluster, NAP off, clusters stopped, labfw last. While a
 cell is stopped or Flux is suspended, nothing merged here reaches it until the start. A route answers 404/503 with no pod.
+
+**HTTP/2 upstream (design D69, 2026-10-18):** `apps/aks-hello/service.yaml` carries `appProtocol: kubernetes.io/h2c`, so the
+zone gateway (Traefik in the lab, App Routing's Istio in acc/prd) connects to the pod over h2c instead of HTTP/1.1; the
+platform's policy `h2c-upstream` will require it on every routed Service port. boot-log's Service has no field on purpose
+(busybox httpd is HTTP/1.1 only) and is the known audit finding. Verify with Cluster status `route_path: /status` once the
+example runs aks-hello 0.5.1 (`protocol` field): expected `HTTP/2`. Not yet verified - the lab is stopped.

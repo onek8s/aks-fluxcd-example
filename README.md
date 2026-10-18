@@ -50,6 +50,17 @@ running - its pods go and NAP removes the zones' nodes within minutes (the platf
 guardrails allow 0 and at least 2, nothing between). Keep it at 2 for a Lab power `start` to bring
 the app back. Change it in a pull request; the cells' Flux configurations apply `main` within a minute.
 
+## HTTP/2 between the gateway and the pod
+
+The zone gateway connects to an app over HTTP/2 cleartext with prior knowledge (h2c), never HTTP/1.1 - the
+platform's rule since design D69 ("HTTP/1.1 must die": the hop a proxy shares between users is where request
+smuggling happens). Two things follow for a team: every `Service` port an `HTTPRoute` references carries
+`appProtocol: kubernetes.io/h2c` (aks-hello's does; the platform's policy requires it), and the app serves h2c on that
+port - Kestrel, Go's `net/http` with `h2c`, Java and Node do out of the box, `busybox httpd` (boot-log) does not. HTTP/1.1
+stays for the kubelet's probes on the same port until Kubernetes 1.38. Check an image with
+`curl --http2-prior-knowledge http://<pod>:8080/status` before its first route; aks-hello 0.5.1 answers with
+`"protocol":"HTTP/2"`.
+
 ## Who owns what
 
 The split follows the [Gateway API role model][roles]: the platform runs the zone's gateway, the team

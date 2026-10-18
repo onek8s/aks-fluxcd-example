@@ -7,3 +7,6 @@ spec:
     - name: http
       port: 80
       targetPort: http
+      # No `appProtocol: kubernetes.io/h2c` here: busybox httpd speaks HTTP/1.1 only, so the gateway
+      # would get a 503 over h2c. The platform requires HTTP/2 upstream on every routed port (design
+      # section 4.1, D69), so this example stays in audit until it runs on a server that serves h2c.
