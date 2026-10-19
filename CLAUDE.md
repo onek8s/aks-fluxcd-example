@@ -24,3 +24,7 @@ zone's nodeSelector + toleration from the namespace. Validate with `kustomize bu
   h2c port 8081 (probes stay HTTP/1.1 on 8080); the platform's policy `h2c-upstream` requires it on every routed
   Service port. boot-log's Service has none on purpose (busybox httpd is HTTP/1.1 only, the known audit finding).
 - aks-hello 0.6.0 runs on the Ubuntu ASP.NET Core image with a shell (`kubectl exec -it <pod> -- bash`).
+- aks-hello 0.7.0 adds ifconfig, ping, curl and wget to the image, all usable as UID 1654 with every capability
+  dropped. ping needs the pod's sysctl `net.ipv4.ping_group_range: "1654 1654"` (deployment.yaml; already there
+  while the image is 0.6.0) - keep it while ping should work. The image tag moves to 0.7.0 only after the registry
+  has built it (aks-hello README, Releasing).
