@@ -1,9 +1,8 @@
-# The apps of apps/ for the firewall-egress cell (aks-terraform envs/dev-int-stateless-az3.tfvars:
-# managed_namespaces.int-se-example.flux.path, design D59): aks-hello in the int-se zone, on the zone's own
-# NAP nodes - not on the system node like stateless/ - because a cell without an overlay gives its pods
-# addresses of their node's subnet, and only the zone's subnet tells the hub's firewall whose flow it is.
+# The apps of apps/ for the lab's cell (aks-terraform envs/dev-int-stateless-az3.tfvars:
+# managed_namespaces.int-se-example.flux.path): aks-hello in the int-se zone, on the zone's own nodes, whose
+# pod subnet tells the hub's firewall whose flow it is.
 #
-# aks-hello 0.5.0 fetches (and refreshes every minute) a weather forecast from the internet (api.open-meteo.com) and asks
+# aks-hello fetches (and refreshes every minute) a weather forecast from the internet (api.open-meteo.com) and asks
 # api.ipify.org once at start for the node's public IP (/public-ip). Nothing here opens either:
 # the zone leaves its egress to the hub's firewall, which denies it until the application's firewall rule
 # exists (azure-landing-zone, firewall-applications/dev-int/int-se-example.yaml) - proposed by the egress
@@ -20,7 +19,7 @@ components:
   - ../lab/scale
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
-    newTag: 0.5.2
+    newTag: 0.6.0
 patches:
   - target:
       kind: Deployment

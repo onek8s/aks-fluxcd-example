@@ -1,6 +1,6 @@
 # Only for an external zone: aks-terraform creates a Traffic Manager profile only for a deployed
 # external zone (shared/: global_hostnames), so an internal cell - the lab's since 2026-10-15 - leaves
-# this directory out (stateless/, apps/).
+# this directory out (apps/, firewall-egress/).
 # hello.<zone domain>, the name every external cell serves at once: its record is a CNAME to aks-terraform's
 # Azure Traffic Manager profile, which hands out one cell or another and leaves out a cell whose
 # probe of /healthz fails. The controller annotation tells the cell's external-dns to leave the name

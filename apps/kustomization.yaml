@@ -1,7 +1,7 @@
 # Everything the `example` namespace's Flux configuration applies to it: one directory per app.
 #
-# `namespace` puts every object in `int-fi-example`, the team's namespace in the int-fi zone (the lab's
-# internal cell since 2026-10-15; an external cell's would be `ext-fi-example` with ../apps/aks-hello-global). The configuration has no `targetNamespace` to do it,
+# `namespace` puts every object in `int-fi-example`, the team's namespace in the int-fi zone (the stateful
+# cluster, aks-terraform envs/dev-int-stateful.tfvars). The configuration has no `targetNamespace` to do it,
 # and the AKS Flux extension would refuse any other namespace anyway.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
