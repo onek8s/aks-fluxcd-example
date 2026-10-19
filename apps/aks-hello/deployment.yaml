@@ -12,7 +12,9 @@ spec:
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
-  revisionHistoryLimit: 3
+  # No old ReplicaSets: a rollback is a Git revert (design section 3.3), which Flux applies as a new rollout, and
+  # an old ReplicaSet keeps the previous image reference - the platform admits only images by digest.
+  revisionHistoryLimit: 0
   template:
     metadata:
       labels:
