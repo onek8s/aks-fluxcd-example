@@ -27,4 +27,5 @@ zone's nodeSelector + toleration from the namespace. Validate with `kustomize bu
 - aks-hello 0.7.0 adds ifconfig, ping, curl and wget to the image, all usable as UID 1654 with every capability
   dropped. ping needs the pod's sysctl `net.ipv4.ping_group_range: "1654 1654"` (deployment.yaml; already there
   while the image is 0.6.0) - keep it while ping should work. The image tag moves to 0.7.0 only after the registry
-  has built it (aks-hello README, Releasing).
+  has built it (aks-hello README, Releasing), and always with its digest (`deployment.yaml` and `firewall-egress/`'s
+  `images:`): the platform admits images from the registry by digest only (`k8s-allowed-images`).

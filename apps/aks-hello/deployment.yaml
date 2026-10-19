@@ -33,6 +33,10 @@ spec:
         runAsNonRoot: true
         runAsUser: 1654
         runAsGroup: 1654
+        # The pod's volumes and supplementary groups, stated: the restricted standard as AKS's policies check
+        # it wants both in 1-65535 (MustRunAs).
+        fsGroup: 1654
+        supplementalGroups: [1654]
         seccompProfile:
           type: RuntimeDefault
         # `ping` in the pod (aks-hello 0.7.0) as the non-root user without CAP_NET_RAW: an ICMP datagram
@@ -51,8 +55,10 @@ spec:
       containers:
         - name: aks-hello
           # A version the registry has built - the <Version> of onek8s/aks-hello's
-          # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acronek8sdev.azurecr.io/aks-hello:0.6.0
+          # src/AksHello/AksHello.csproj - and its digest: the platform admits images from the environment's
+          # registry by digest only (azure-landing-zone, k8s-allowed-images). Bumping both here is what rolls a
+          # release out (`az acr repository show --name acronek8sdev --image aks-hello:<version> --query digest`).
+          image: acronek8sdev.azurecr.io/aks-hello:0.6.0@sha256:bb1696d01a18d224fefde2f6e04af5e369016b823f448d2eeff531fc3e641a42
           ports:
             # HTTP/1.1, for the kubelet's probes below (httpGet speaks HTTP/1.1 until Kubernetes 1.38)
             - name: http

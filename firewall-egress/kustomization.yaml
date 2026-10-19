@@ -20,6 +20,7 @@ components:
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
     newTag: 0.6.0
+    digest: sha256:bb1696d01a18d224fefde2f6e04af5e369016b823f448d2eeff531fc3e641a42
 patches:
   - target:
       kind: Deployment
