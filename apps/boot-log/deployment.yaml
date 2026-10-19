@@ -7,7 +7,9 @@ spec:
   replicas: 1
   strategy:
     type: Recreate
-  revisionHistoryLimit: 3
+  # No old ReplicaSets: a rollback is a Git revert (design section 3.3), which Flux applies as a new rollout, and
+  # an old ReplicaSet keeps the previous image reference - the platform admits only images by digest.
+  revisionHistoryLimit: 0
   template:
     spec:
       automountServiceAccountToken: false
