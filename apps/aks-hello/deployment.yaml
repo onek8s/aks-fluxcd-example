@@ -20,7 +20,7 @@ spec:
         # an amd64 image, and it may run on spot. The platform's Azure Policy mutations turn them
         # into the architecture nodeSelector, the spot toleration and a preference for spot nodes,
         # and put the pod on the int-fi zone's nodes (platform/zone selector and toleration) from
-        # its namespace; NAP falls back to on-demand when Azure has no spot capacity.
+        # its namespace; the cluster autoscaler falls back to on-demand when Azure has no spot capacity.
         platform/arch: amd64
         platform/capacity: spot
     spec:
@@ -46,7 +46,7 @@ spec:
         - name: aks-hello
           # A version the registry has built - the <Version> of onek8s/aks-hello's
           # src/AksHello/AksHello.csproj. Bumping it here is what rolls a release out.
-          image: acronek8sdev.azurecr.io/aks-hello:0.5.2
+          image: acronek8sdev.azurecr.io/aks-hello:0.6.0
           ports:
             # HTTP/1.1, for the kubelet's probes below (httpGet speaks HTTP/1.1 until Kubernetes 1.38)
             - name: http

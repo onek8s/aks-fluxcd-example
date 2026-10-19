@@ -1,10 +1,9 @@
-# The lab's Git switch for aks-hello's copies (dev only): how many replicas every cell runs. The cell
-# directories (firewall-egress/, firewall-egress-int-fi/, stateless/) include this component, so the
-# count below is the replicas of aks-hello in every cell at once - the deployment's own `replicas: 2`
+# The lab's Git switch for aks-hello's copies (dev only): how many replicas the cell runs. The cell's
+# directory (firewall-egress/) includes this component, so the count below is the replicas of aks-hello - the deployment's own `replicas: 2`
 # stays as the application's statement and is overridden here only.
 #
 #   2 - running (the guardrails' minimum in a stateless cell): what Git says the cells run.
-#   0 - switched off in Git (no pod, so NAP removes the zones' nodes within minutes). The platform's rollout
+#   0 - switched off in Git (no pod, so the cluster autoscaler removes the zone's nodes). The platform's rollout
 #       guardrails allow 0 on purpose (azure-landing-zone, rollout-guardrails: an application switched off).
 #
 # A pause of the whole lab is aks-terraform's "Lab power" workflow, which leaves Git alone: its stop suspends

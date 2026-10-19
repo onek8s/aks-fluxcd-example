@@ -9,9 +9,9 @@ clusters unchanged. aks-terraform gives the namespace a Flux configuration of it
 into it - its status is on the cluster's GitOps page in the Azure portal. Everything else - the apps'
 source and images - lives in the apps' own repositories.
 
-The stateless clusters, aks-dev-ext-stateless-az1 and aks-dev-ext-stateless-az2 - the design's cells - have
-no persistent storage at all, so they sync `stateless/` instead: the apps of `apps/` that keep no
-state - aks-hello, not boot-log.
+The design's cells have no persistent storage, so the lab's cell, aks-dev-int-stateless-az3 (Sweden's int-se
+zone), syncs `firewall-egress/` into `int-se-example` instead: aks-hello alone, not boot-log, with a Stockholm
+forecast; the hub firewall decides its egress.
 
 ## Layout
 
@@ -28,25 +28,24 @@ apps/
     deployment.yaml
     service.yaml
     httproute.yaml       # /boot-log/ of aks-hello's name in the cluster
-stateless/
-  kustomization.yaml     # the apps that keep no state, for the stateless clusters: aks-hello only
+firewall-egress/
+  kustomization.yaml     # the lab's cell: aks-hello only, in int-se-example
 lab/
   scale/                 # the lab's replica switch for aks-hello in every cell: 0 (off) or 2 (running)
 ```
 
 Adding an app is a new directory under `apps/` and a line in `apps/kustomization.yaml` - and in
-`stateless/kustomization.yaml`, as `../apps/<app>`, if it needs no volume.
+`firewall-egress/kustomization.yaml`, as `../apps/<app>`, if it needs no volume.
 
 ## Switching the lab's copies off and on
 
 A pause of the whole lab is aks-terraform's **Lab power** workflow: its `stop` suspends the cells'
-Flux configurations, scales the apps down in the clusters, turns NAP off and stops the clusters (the
+Flux configurations, scales the apps down in the clusters and stops the clusters (the
 hub's firewall last); its `start` reverts that, and Flux puts the state of Git back. Nothing here changes.
 
-`lab/scale/kustomization.yaml` is a Git-only switch next to it: one kustomize component every cell
-directory (`firewall-egress/`, `firewall-egress-int-fi/`, `stateless/`) includes, with one number -
-aks-hello's replicas in every cell. `2` is running; `0` switches the application off with the clusters
-running - its pods go and NAP removes the zones' nodes within minutes (the platform's rollout
+`lab/scale/kustomization.yaml` is a Git-only switch next to it: one kustomize component the cell's
+directory (`firewall-egress/`) includes, with one number - aks-hello's replicas. `2` is running; `0` switches the application off with the clusters
+running - its pods go and the cluster autoscaler removes the zone's nodes (the platform's rollout
 guardrails allow 0 and at least 2, nothing between). Keep it at 2 for a Lab power `start` to bring
 the app back. Change it in a pull request; the cells' Flux configurations apply `main` within a minute.
 
@@ -58,7 +57,7 @@ smuggling happens). Two things follow for a team: every `Service` port an `HTTPR
 `appProtocol: kubernetes.io/h2c` (aks-hello's does; the platform's policy requires it), and the app serves h2c on that
 port - Kestrel, Go's `net/http` with `h2c`, Java and Node do out of the box, `busybox httpd` (boot-log) does not. HTTP/1.1
 stays for the kubelet's probes on the same port until Kubernetes 1.38. Check an image with
-`curl --http2-prior-knowledge http://<pod>:8080/status` before its first route; aks-hello 0.5.1 answers with
+`curl --http2-prior-knowledge http://<pod>:8080/status` before its first route; aks-hello 0.5.1 and later answer with
 `"protocol":"HTTP/2"`.
 
 ## Who owns what
@@ -125,11 +124,11 @@ aks-fluxcd-platform's README, "Persistent volumes".
 
 `boot-log` appends `<time> <node> <pod>` to `log.txt` on its volume every time it starts, and serves
 it at `https://hello-<cluster>.int-fi.dev.onek8s.lol/boot-log/log.txt` on
-aks-dev-ext-stateful.
+aks-dev-int-stateful.
 
 The stateless clusters - no disk CSI driver, no `portable-disk` StorageClass - do not run boot-log
-(they sync `stateless/`), so the steps below need another cluster with portable disks to move the
-disk to. They are kept for that: with a second stateful cluster, they move aks-dev-ext-stateful's disk to
+(they sync `firewall-egress/`), so the steps below need another cluster with portable disks to move the
+disk to. They are kept for that: with a second stateful cluster, they move aks-dev-int-stateful's disk to
 it.
 
 1. **Stop it in the old cluster.** Suspend the namespace's Flux configuration, so the next sync does
@@ -137,7 +136,7 @@ it.
    the disk's resource ID.
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful -t managedClusters -n int-fi-example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-int-stateful -t managedClusters -n int-fi-example --suspend true
    kubectl -n int-fi-example scale deployment boot-log --replicas=0
    kubectl get pv "$(kubectl -n int-fi-example get pvc boot-log -o jsonpath='{.spec.volumeName}')" \
      -o jsonpath='{.spec.csi.volumeHandle}'
@@ -149,7 +148,7 @@ it.
    PersistentVolume is cluster-wide, which the team cannot create):
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n int-fi-example --suspend true
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-int-stateful-2 -t managedClusters -n int-fi-example --suspend true
    kubectl -n int-fi-example scale deployment boot-log --replicas=0
    kubectl -n int-fi-example delete pvc boot-log
    kubectl apply -f - <<'PV'
@@ -176,11 +175,11 @@ it.
    again, it binds to the reserved volume, and the pod starts on the moved disk:
 
    ```sh
-   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-ext-stateful-2 -t managedClusters -n int-fi-example --suspend false
-   curl https://hello-aks-dev-ext-stateful-2.int-fi.dev.onek8s.lol/boot-log/log.txt
+   az k8s-configuration flux update -g rg-aks-dev -c aks-dev-int-stateful-2 -t managedClusters -n int-fi-example --suspend false
+   curl https://hello-aks-dev-int-stateful-2.int-fi.dev.onek8s.lol/boot-log/log.txt
    ```
 
-   The lines written on aks-dev-ext-stateful's node are there, followed by one from this cluster's.
+   The lines written on aks-dev-int-stateful's node are there, followed by one from this cluster's.
 
 The old cluster stays suspended for as long as the disk is the new one's; resuming it there would
 start the pod on a claim whose disk is attached elsewhere.
