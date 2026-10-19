@@ -35,6 +35,12 @@ spec:
         runAsGroup: 1654
         seccompProfile:
           type: RuntimeDefault
+        # `ping` in the pod (aks-hello 0.7.0) as the non-root user without CAP_NET_RAW: an ICMP datagram
+        # socket, which the kernel allows only for the groups in this range. A safe sysctl, allowed by
+        # the restricted standard; it applies to the pod's own network namespace.
+        sysctls:
+          - name: net.ipv4.ping_group_range
+            value: "1654 1654"
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
