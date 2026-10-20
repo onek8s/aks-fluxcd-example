@@ -1,0 +1,30 @@
+# The same application in Finland's zone: firewall-egress/ (aks-hello for the lab's cell, see there) applied into
+# `int-fi-example` with Helsinki's forecast (aks-terraform envs/dev-int-stateless-az3.tfvars:
+# managed_namespaces.int-fi-example.flux.path). Two zones in one cell let the lab test the isolation between
+# them (design D73): nothing connects int-fi-example and int-se-example directly; either reaches the other only as
+# a client of the other zone's published name, through the hub's firewall, with a rule in its own firewall rule file
+# (azure-landing-zone, firewall-applications/dev-int/int-fi-example.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: int-fi-example
+resources:
+  - ../firewall-egress
+patches:
+  - target:
+      kind: Deployment
+      name: aks-hello
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: aks-hello
+      spec:
+        template:
+          spec:
+            containers:
+              - name: aks-hello
+                env:
+                  - name: WEATHER_PLACE
+                    value: Helsinki
+                  - name: WEATHER_URL
+                    value: https://api.open-meteo.com/v1/forecast?latitude=60.17&longitude=24.94&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=3
