@@ -60,7 +60,7 @@ spec:
           # src/AksHello/AksHello.csproj - and its digest: the platform admits images from the environment's
           # registry by digest only (azure-landing-zone, k8s-allowed-images). Bumping both here is what rolls a
           # release out (`az acr repository show --name acronek8sdev --image aks-hello:<version> --query digest`).
-          image: acronek8sdev.azurecr.io/aks-hello:0.6.0@sha256:bb1696d01a18d224fefde2f6e04af5e369016b823f448d2eeff531fc3e641a42
+          image: acronek8sdev.azurecr.io/aks-hello:0.8.0@sha256:201cac9a95b8286e7861c7442ce11f09c495cee2802c8ae24abce07f6787cc1e
           ports:
             # HTTP/1.1, for the kubelet's probes below (httpGet speaks HTTP/1.1 until Kubernetes 1.38)
             - name: http

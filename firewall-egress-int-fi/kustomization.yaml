@@ -28,3 +28,7 @@ patches:
                     value: Helsinki
                   - name: WEATHER_URL
                     value: https://api.open-meteo.com/v1/forecast?latitude=60.17&longitude=24.94&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=3
+                  # The peers the other way round (see firewall-egress/): Sweden's application by its Service
+                  # name and by its published name.
+                  - name: PEERS
+                    value: int-se (Service)=http://aks-hello.int-se-example.svc.cluster.local/status;int-se (published)=https://hello.int-se.dev.onek8s.lol/status
