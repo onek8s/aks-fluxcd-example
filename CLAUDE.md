@@ -8,6 +8,8 @@ only: `platform/arch: amd64` and `platform/capacity: spot`; the platform's Azure
 zone's nodeSelector + toleration from the namespace. Validate with `kustomize build` and the fleet's
 `check-egress.py` (the CI workflow does both).
 
+- `firewall-egress-int-fi/` is the same for `int-fi-example` (Finland's zone, in az3 since 2026-10-20: Helsinki's forecast; a
+  second zone in the cell to test the isolation between zones).
 - `firewall-egress/` is what the lab's one cell, az3, syncs into `int-se-example` (Sweden's zone): aks-hello on
   the zone's own nodes with a Stockholm forecast from api.open-meteo.com and its public IP from api.ipify.org.
   No Cilium FQDN policy: the hub firewall decides, per application, from azure-landing-zone's
