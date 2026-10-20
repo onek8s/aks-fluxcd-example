@@ -27,7 +27,9 @@ zone's nodeSelector + toleration from the namespace. Validate with `kustomize bu
   Service port. boot-log's Service has none on purpose (busybox httpd is HTTP/1.1 only, the known audit finding).
 - aks-hello 0.6.0 runs on the Ubuntu ASP.NET Core image with a shell (`kubectl exec -it <pod> -- bash`).
 - aks-hello 0.7.0 adds ifconfig, ping, curl and wget to the image, all usable as UID 1654 with every capability
-  dropped. ping needs the pod's sysctl `net.ipv4.ping_group_range: "1654 1654"` (deployment.yaml; already there
-  while the image is 0.6.0) - keep it while ping should work. The image tag moves to 0.7.0 only after the registry
-  has built it (aks-hello README, Releasing), and always with its digest (`deployment.yaml` and `firewall-egress/`'s
-  `images:`): the platform admits images from the registry by digest only (`k8s-allowed-images`).
+  dropped. ping needs the pod's sysctl `net.ipv4.ping_group_range: "1654 1654"` (deployment.yaml) - keep it while
+  ping should work. **0.8.0 (deployed 2026-10-20) adds the peers**: `PEERS` in each overlay names the other zone's
+  aks-hello by its Service name and its published name, polled every minute over HTTP/2; the page and `/peers` show
+  the results (the Service name never answers, the published name only with a firewall rule). A new tag always
+  comes with its digest (`deployment.yaml` and `firewall-egress/`'s `images:`, from aks-terraform's Sign images
+  log): the platform admits images from the registry by digest only (`k8s-allowed-images`).
