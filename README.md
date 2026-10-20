@@ -91,7 +91,7 @@ namespace's Flux configuration together with `${cluster_name}`. aks-hello has tw
 
 Both are served with the zone's wildcard certificate, on HTTPS only - there is no plain HTTP.
 
-**Placement.** The pods state only what is the application's choice, as labels (design R17):
+**Placement.** The pods state only what is the application's choice, as labels (design R8):
 `platform/arch` (`amd64` default, `arm64`, `multi`) and `platform/capacity` (`on-demand` default,
 `spot`). The platform's Azure Policy mutations (onek8s/azure-landing-zone `stacks/aks-policy`) turn
 them into the architecture nodeSelector and the spot toleration and preference, and pin every pod of

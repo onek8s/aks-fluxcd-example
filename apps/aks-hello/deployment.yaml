@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       labels:
-        # Placement is the application's choice, stated as labels (design R17): aks-hello:0.3.0 is
+        # Placement is the application's choice, stated as labels (design R8): aks-hello:0.3.0 is
         # an amd64 image, and it may run on spot. The platform's Azure Policy mutations turn them
         # into the architecture nodeSelector, the spot toleration and a preference for spot nodes,
         # and put the pod on the int-fi zone's nodes (platform/zone selector and toleration) from
