@@ -1,0 +1,101 @@
+# aks-hello's two names in the int-se zone, as in ../../apps/aks-hello and ../../apps/aks-hello-home, in front of
+# both copies. The weights are the share of the requests each copy gets: 100/0 is blue/green (all on one
+# copy), 90/10 then 50/50 a canary. Gateway API's core `backendRefs[].weight`; the zone's gateway splits per
+# request, so one client may meet both copies while both have a weight (design section 3.4: fine for a
+# backwards compatible API, not for an interactive application - switch those 100/0).
+#
+# A tester reaches the copy that has no weight yet with the header `x-version: <colour>`: the first rule of
+# each route (Gateway API core header match). Both routes carry the same rules: change the weights in both.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: aks-hello
+  annotations:
+    platform/home-cell: "${cluster_name}"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ${zone}-gateway
+      name: ${zone}
+  hostnames:
+    - hello-${cluster_name}.${zone_domain}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-version
+              value: blue
+      backendRefs:
+        - name: aks-hello-blue
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-version
+              value: green
+      backendRefs:
+        - name: aks-hello-green
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: aks-hello-blue
+          port: 80
+          weight: 100
+        - name: aks-hello-green
+          port: 80
+          weight: 0
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: aks-hello-home
+  annotations:
+    platform/home-cell: "${home_cell:=none}"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: ${zone}-gateway
+      name: ${zone}
+  hostnames:
+    - hello.${zone_domain}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-version
+              value: blue
+      backendRefs:
+        - name: aks-hello-blue
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: x-version
+              value: green
+      backendRefs:
+        - name: aks-hello-green
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: aks-hello-blue
+          port: 80
+          weight: 100
+        - name: aks-hello-green
+          port: 80
+          weight: 0

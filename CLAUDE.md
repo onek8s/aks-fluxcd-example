@@ -33,3 +33,8 @@ zone's nodeSelector + toleration from the namespace. Validate with `kustomize bu
   the results (the Service name never answers, the published name only with a firewall rule). A new tag always
   comes with its digest (`deployment.yaml` and `firewall-egress/`'s `images:`, from aks-terraform's Sign images
   log): the platform admits images from the registry by digest only (`k8s-allowed-images`).
+- **`blue-green/int-se/`** (2026-11-25, the user): `firewall-egress/` as two copies, `aks-hello-blue` and
+  `aks-hello-green` (nameSuffix + `app.kubernetes.io/instance`), behind the two routes with Gateway API weights and an
+  `x-version` header for testers - blue/green and canary releases inside a cell without a controller (README "Blue/green
+  and canary releases"). No Flux configuration syncs it yet; CI builds it. Not yet in the design: in-cell releases need
+  a requirement, which is a human's.
