@@ -1,0 +1,11 @@
+# aks-hello in int-se-example as two copies, blue and green, behind one pair of routes: blue/green and canary
+# releases inside a cell with plain Kubernetes and Gateway API objects - no controller, no custom resource.
+# A drop-in for ../../firewall-egress (the same namespace, names and settings); no Flux configuration syncs it
+# yet. See README.md, "Blue/green and canary releases".
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: int-se-example
+resources:
+  - blue
+  - green
+  - httproute.yaml

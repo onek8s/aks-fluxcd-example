@@ -30,6 +30,8 @@ apps/
     httproute.yaml       # /boot-log/ of aks-hello's name in the cluster
 firewall-egress/
   kustomization.yaml     # the lab's cell: aks-hello only, in int-se-example
+blue-green/
+  int-se/                # firewall-egress/ as two copies, blue and green, for releases inside a cell
 lab/
   scale/                 # the lab's replica switch for aks-hello in every cell: 0 (off) or 2 (running)
 ```
@@ -48,6 +50,40 @@ directory (`firewall-egress/`) includes, with one number - aks-hello's replicas.
 running - its pods go and the cluster autoscaler removes the zone's nodes (the platform's rollout
 guardrails allow 0 and at least 2, nothing between). Keep it at 2 for a Lab power `start` to bring
 the app back. Change it in a pull request; the cells' Flux configurations apply `main` within a minute.
+
+## Blue/green and canary releases
+
+`blue-green/int-se/` is aks-hello in `int-se-example` as **two copies**, `aks-hello-blue` and `aks-hello-green`,
+behind its two routes - a drop-in for `firewall-egress/` (same namespace, names and settings), built from it with
+plain Kustomize. No Flux configuration syncs it yet: pointing the namespace's Flux path
+(aks-terraform `managed_namespaces.int-se-example.flux.path`) at it is what switches the lab's aks-hello over.
+
+```
+blue-green/int-se/
+  kustomization.yaml     # the namespace: both copies and the routes
+  httproute.yaml         # aks-hello's two names, with each copy's weight and the x-version header for testers
+  blue/kustomization.yaml    # firewall-egress/ renamed aks-hello-blue: its image digest and replicas
+  green/kustomization.yaml   # the same for aks-hello-green
+```
+
+Each copy is a whole application to the platform: its own Deployment, Service (`appProtocol: kubernetes.io/h2c`)
+and PodDisruptionBudget, selected by `app.kubernetes.io/instance`, and the same rules apply to each (at least 2
+replicas while it serves, 0 while idle). Placement is the namespace's, so both copies run on the same node pools:
+a release changes the application, a node pool change is a new pool generation (aks-terraform), never both at once.
+
+A release is a few pull requests, each applied by Flux within a minute:
+
+1. **Start the idle copy** (say green, blue serving): its `images:` digest to the new version, `replicas` to 2.
+   Testers reach it with the header `x-version: green`
+   (`curl --http2 -H 'x-version: green' https://hello.int-se.dev.onek8s.lol/status`); nobody else does yet.
+2. **Shift the requests** in both routes of `httproute.yaml`: blue/green is one step, 0/100; a canary takes steps
+   (90/10, 50/50, 0/100) while the team watches its error rate and latency in Grafana Cloud. A canary splits per
+   request, so a client may meet both versions between the steps: use it for backwards compatible APIs, and switch
+   an interactive application in one step (OneK8s design section 3.4).
+3. **Stop the old copy**: blue's `replicas` to 0. Its image stays in Git as the version to go back to.
+
+Going back before step 3 is the weights alone; after it, step 1 with the old digest. The next release starts from
+blue. During a switch the namespace runs both copies, so its quota and its node pools need room for four pods.
 
 ## HTTP/2 between the gateway and the pod
 

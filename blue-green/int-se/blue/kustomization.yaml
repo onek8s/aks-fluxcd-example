@@ -1,0 +1,41 @@
+# The blue copy of aks-hello in int-se-example: the lab cell's aks-hello (../../../firewall-egress) renamed
+# aks-hello-blue, with a label of its own so that its Service, PodDisruptionBudget and spread select only its
+# pods. Its version and its replicas are the two lines a release changes here; the share of the requests it
+# gets is in ../httproute.yaml. See README.md, "Blue/green and canary releases".
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../firewall-egress
+nameSuffix: -blue
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/instance: aks-hello-blue
+# The version this copy runs - always with its digest: the platform admits images from the registry by digest
+# only (k8s-allowed-images).
+images:
+  - name: acronek8sdev.azurecr.io/aks-hello
+    newTag: 0.8.0
+    digest: sha256:201cac9a95b8286e7861c7442ce11f09c495cee2802c8ae24abce07f6787cc1e
+# 2 while the copy serves requests, 0 while it is idle - nothing between (the platform's rollout guardrails: at
+# least 2 copies of a serving application, or 0).
+replicas:
+  - name: aks-hello-blue
+    count: 2
+patches:
+  # The routes are the colours' common front, in ../httproute.yaml: none per copy.
+  - target:
+      kind: HTTPRoute
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: any
+  # Spread this copy's pods over the nodes by themselves, not counted with the green copy's.
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints/0/labelSelector/matchLabels/app.kubernetes.io~1instance
+        value: aks-hello-blue
