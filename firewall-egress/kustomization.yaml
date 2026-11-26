@@ -13,7 +13,6 @@ kind: Kustomization
 namespace: int-se-example
 resources:
   - ../apps/aks-hello
-  - ../apps/aks-hello-home
 # The lab's replica switch (lab/scale: 0 = switched off, 2 = running), the same in every cell.
 components:
   - ../lab/scale

@@ -43,8 +43,11 @@ jobs:
           mkdir -p "$RUNNER_TEMP/built"
           kustomize build apps > "$RUNNER_TEMP/built/apps.yaml"
           kustomize build firewall-egress > "$RUNNER_TEMP/built/firewall-egress.yaml"
+          kustomize build firewall-egress/home > "$RUNNER_TEMP/built/firewall-egress-home.yaml"
           kustomize build firewall-egress-int-fi > "$RUNNER_TEMP/built/firewall-egress-int-fi.yaml"
+          kustomize build firewall-egress-int-fi/home > "$RUNNER_TEMP/built/firewall-egress-int-fi-home.yaml"
           kustomize build blue-green/int-se > "$RUNNER_TEMP/built/blue-green-int-se.yaml"
+          kustomize build blue-green/int-se/home > "$RUNNER_TEMP/built/blue-green-int-se-home.yaml"
 
       - name: Egress policies
         run: |

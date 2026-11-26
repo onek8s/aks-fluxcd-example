@@ -16,8 +16,8 @@ zone's nodeSelector + toleration from the namespace. Validate with `kustomize bu
   `firewall-applications/dev-int/int-se-example.yaml` - proposed by the egress agent (aks-ai-agents), merged
   by a human.
 - `apps/` is the whole namespace (aks-hello + boot-log on a portable disk) for `int-fi-example` in the
-  stateful cluster (defined, never deployed); `apps/aks-hello-global` is the Traffic Manager name of an
-  external zone (no external cell runs today).
+  stateful cluster (defined, never deployed); `apps/aks-hello-home` is the app's own name, applied by its home
+  cell alone (design v5.0: no Traffic Manager, the route is the DNS switch; `firewall-egress/home`).
 - **Lab replica switch**: `lab/scale/kustomization.yaml` (`replicas: aks-hello count`), included by
   `firewall-egress/`: **2 = running, what Git says** (keep it so: aks-terraform's `Lab power` start resumes
   Flux, which puts this number back); 0 = off in Git with the cluster running (the rollout guardrails allow 0).

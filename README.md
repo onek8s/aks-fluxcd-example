@@ -107,7 +107,7 @@ routes to its apps.
 | The zone's Cilium baseline: in from the zone's gateway only, out to cluster DNS only | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
 | The Gateway API CRDs | aks-terraform | Platform |
 | The int-fi gateway: the Gateway's App Routing (Envoy) pods, its load balancer, the Gateway `int-fi`, its HTTPS listener for `*.int-fi.dev.onek8s.lol` and the zone's wildcard certificate | aks-fluxcd-platform (`infrastructure/zones`) | Platform |
-| DNS: the routes' hostnames in the zone's Azure Private DNS (`int-fi.dev.onek8s.lol`), kept by external-dns-int. In an external zone also `hello.<zone domain>` in Azure Traffic Manager (`apps/aks-hello-global`; aks-terraform `shared/`: `global_hostnames`) - none for an internal zone | aks-fluxcd-platform, aks-terraform | Platform |
+| DNS: the routes' hostnames in the zone's Azure Private DNS (`int-fi.dev.onek8s.lol`), kept by external-dns-int (an external zone's in the public zone, by external-dns-ext) | aks-fluxcd-platform, aks-terraform | Platform |
 | The Flux configuration that applies `apps/` | aks-terraform (`managed_namespaces.int-fi-example.flux`) | Platform |
 | The namespace's share of the int-fi zone's Key Vault (no webhook Receiver in the internal cell: Flux polls) | aks-fluxcd-platform (`tenants/int-fi-example`) | Platform |
 | The container registry the images are pulled from, as the cluster's kubelet identity | aks-terraform (`shared/`, `container_registry_name`) | Platform |
@@ -120,10 +120,9 @@ namespace's Flux configuration together with `${cluster_name}`. aks-hello has tw
 
 - `hello-${cluster_name}.${zone_domain}` - its name in each cluster, which the cluster's external-dns
   publishes as an A record of the cluster's int-fi gateway;
-- `hello.${zone_domain}` - its name in every cell at once, behind aks-terraform's Azure Traffic
-  Manager, which hands out one cell or another (the page says which cluster answered). That route
-  carries `external-dns.kubernetes.io/controller: traffic-manager`, so external-dns leaves the name
-  to Traffic Manager.
+- `hello.${zone_domain}` - its own name, published by its home cell alone: the route is in
+  `apps/aks-hello-home`, which only the home cell applies (aks-terraform tenants/, `flux.home`), so
+  moving the app moves the route and the record (design section 3.1).
 
 Both are served with the zone's wildcard certificate, on HTTPS only - there is no plain HTTP.
 
