@@ -1,0 +1,6 @@
+# hello.int-fi... for the home cell alone - see ../../firewall-egress/home.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: int-fi-example
+resources:
+  - ../../apps/aks-hello-home
