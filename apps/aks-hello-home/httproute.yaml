@@ -1,10 +1,9 @@
-# hello.<zone domain> in an internal zone (OneK8s design section 3.1): an internal app runs in one home
-# cell, and its name points straight to the zone gateway there - an A record in the zone's private DNS,
-# kept by the cell's external-dns. Only the home cell has this route: the tenant's catalogue file names
+# hello.<zone domain> (OneK8s design section 3.1): an app runs in one home cell, internal or external, and
+# its name points straight to the zone gateway there - an A record in the zone's private DNS or, for an
+# external zone, in the public zone, kept by the cell's external-dns. Only the home cell has this route: the tenant's catalogue file names
 # the home cell and the path that holds it (aks-terraform tenants/, `flux.home`), which becomes a
 # Kustomization of the team's Flux configuration in that cell alone. Moving the app to another cell moves
-# the route, and with it the record. An external zone's equivalent is ../aks-hello-global (Traffic
-# Manager, every cell at once).
+# the route, and with it the record.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
