@@ -15,8 +15,8 @@ labels:
 # only (k8s-allowed-images).
 images:
   - name: acronek8sdev.azurecr.io/aks-hello
-    newTag: 0.8.0
-    digest: sha256:201cac9a95b8286e7861c7442ce11f09c495cee2802c8ae24abce07f6787cc1e
+    newTag: 0.8.1
+    digest: sha256:1c5b0d186d8c92c6b97c7862274a338898363e7a47ead60e3b07a18654fcdbb8
 # 2 while the copy serves requests, 0 while it is idle - nothing between (the platform's rollout guardrails: at
 # least 2 copies of a serving application, or 0).
 replicas:
